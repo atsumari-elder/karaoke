@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カラオケ曲リスト</title>
+
+  <style>
+    /* 全体の基本設定 */
+    body {
+      font-family: sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 15px;
+      padding: 0;
+    }
+
+    /* ① コントロールUI全体のコンテナ */
+    .pagination-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 15px;
+      background-color: #f9f9f9;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+
+    /* 各操作行のレイアウト */
+    .pagination-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      font-size: 15px;
+    }
+    .pagination-row .label {
+      font-weight: bold;
+      min-width: 80px;
+    }
+
+    /* 検索キーワード入力欄のスタイル */
+    .search-box input {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      width: 100%;
+      max-width: 300px; /* PCでの最大幅 */
+      box-sizing: border-box;
+    }
+
+    /* ラジオボタン */
+    .limit-selector label {
+      margin-right: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* ドロップダウン */
+    .page-selector select {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    /* ページ移動ボタン */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .page-btn {
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: bold;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .page-btn:hover {
+      background-color: #f0f0f0;
+      border-color: #999;
+    }
+    .page-btn:disabled {
+      background-color: #eee;
+      border-color: #ddd;
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    /* 検索結果がゼロの時のメッセージ */
+    .no-result {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-weight: bold;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+
+    /* ② スマホ対応：横スクロールを許可するコンテナ */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+
+    /* テーブル本体のスタイル */
+    #targetTable {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed; 
+    }
+    #targetTable th, #targetTable td {
+      border: 1px solid #ddd;
+      padding: 12px 10px;
+      text-align: left;
+      vertical-align: middle;
+      word-break: break-all;
+      overflow-wrap: break-word;
+    }
+    #targetTable th {
+      background-color: #ececec;
+      font-weight: bold;
+    }
+
+    /* ーーー 各列の幅・フォント調整 ーーー */
+    #targetTable th:nth-child(1),
+    #targetTable td:nth-child(1) {
+      width: 60px;
+      text-align: center;
+    }
+    #targetTable td:nth-child(1) {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    #targetTable th:nth-child(2),
+    #targetTable td:nth-child(2) {
+      width: 230px;
+    }
+    #targetTable th:nth-child(3),
+    #targetTable td:nth-child(3) {
+      width: 230px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ① コントロールUI -->
+  <div class="pagination-container">
+    <!-- 最上段：キーワード検索欄 -->
+    <div class="pagination-row search-box">
+      <span class="label">絞り込み：</span>
+      <input type="text" id="searchKeyword" placeholder="曲名や歌手名を入力...">
+    </div>
+
+    <!-- 中段：件数切り替え -->
+    <div class="pagination-row limit-selector">
+      <span class="label">表示件数：</span>
+      <label><input type="radio" name="perPage" value="10"> 10件</label>
+      <label><input type="radio" name="perPage" value="25" checked> 25件</label>
+      <label><input type="radio" name="perPage" value="50"> 50件</label>
+    </div>
+
+    <!-- 下段：ページ移動（ドロップダウン ＋ 矢印ボタン） -->
+    <div class="pagination-row">
+      <div class="page-selector">
+        <span class="label">ページ指定：</span>
+        <select id="pageSelect">
+          <!-- JSで自動生成 -->
+        </select>
+      </div>
+      
+      <div class="btn-group">
+        <button type="button" class="page-btn" id="btnFirst" title="最初のページへ">|&lt;</button>
+        <button type="button" class="page-btn" id="btnPrev" title="前のページへ">&lt;</button>
+        <button type="button" class="page-btn" id="btnNext" title="次のページへ">&gt;</button>
+        <button type="button" class="page-btn" id="btnLast" title="最後のページへ">&gt;|</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② テーブル本体（レスポンシブコンテナ） -->
+  <div class="table-responsive">
+    <table id="targetTable">
+      <thead>
+        <tr>
+          <th>曲番号</th>
+          <th>曲名</th>
+          <th>歌手名</th>
+        </tr>
+      </thead>
+      <tbody>
+<tr><td>001</td><td>世界に一つだけの花</td><td>ＳＭＡＰ</td></tr>
+<tr><td>002</td><td>地上の星</td><td>中島みゆき</td></tr>
+<tr><td>003</td><td>亜麻色の髪の乙女</td><td>島谷ひとみ</td></tr>
+<tr><td>004</td><td>fragile</td><td>Every Little Thing</td></tr>
+<tr><td>005</td><td>TSUNAMI</td><td>サザンオールスターズ</td></tr>
+<tr><td>006</td><td>桜坂</td><td>福山雅治</td></tr>
+<tr><td>007</td><td>Automatic</td><td>宇多田ヒカル</td></tr>
+<tr><td>008</td><td>Best Friend</td><td>Kiroro</td></tr>
+<tr><td>009</td><td>Love Day After Tomorrow</td><td>倉木麻衣</td></tr>
+<tr><td>010</td><td>誘惑</td><td>ＧＬＡＹ</td></tr>
+<tr><td>011</td><td>PIECES OF A DREAM</td><td>CHEMISTRY</td></tr>
+<tr><td>012</td><td>負けないで</td><td>ＺＡＲＤ</td></tr>
+<tr><td>013</td><td>STEADY</td><td>ＳＰＥＥＤ</td></tr>
+<tr><td>014</td><td>渚</td><td>スピッツ</td></tr>
+<tr><td>015</td><td>secret base～君がくれたもの～</td><td>ＺＯＮＥ</td></tr>
+<tr><td>016</td><td>ｉｆ．．．</td><td>DA PUMP</td></tr>
+<tr><td>017</td><td>SAY YES</td><td>チャゲ＆飛鳥</td></tr>
+<tr><td>018</td><td>さよなら 大好きな人</td><td>花＊花</td></tr>
+<tr><td>019</td><td>これが私の生きる道</td><td>Ｐｕｆｆｙ</td></tr>
+<tr><td>020</td><td>タイミング～Timing～</td><td>BLACK BISCUITS</td></tr>
+<tr><td>021</td><td>サウダージ</td><td>ポルノグラフィティ</td></tr>
+<tr><td>022</td><td>真夏の夜の夢</td><td>松任谷由実</td></tr>
+<tr><td>023</td><td>名もなき詩</td><td>Mr. Children</td></tr>
+<tr><td>024</td><td>あなたに</td><td>モンゴル８００</td></tr>
+<tr><td>025</td><td>ひだまりの詩</td><td>Le Couple</td></tr>
+<tr><td>026</td><td>北の旅人</td><td>石原裕次郎</td></tr>
+<tr><td>027</td><td>長良川艶歌</td><td>五木ひろし</td></tr>
+<tr><td>028</td><td>東京砂漠</td><td>内山田洋とクールファイブ</td></tr>
+<tr><td>029</td><td>恋におちて -Fall in Love-</td><td>小林明子</td></tr>
+<tr><td>030</td><td>熱き心に</td><td>小林 旭</td></tr>
+<tr><td>031</td><td>祝い酒</td><td>坂本冬美</td></tr>
+<tr><td>032</td><td>星空のトーキョー</td><td>チェウニ</td></tr>
+<tr><td>033</td><td>あんたの花道</td><td>天童よしみ</td></tr>
+<tr><td>034</td><td>大阪で生まれた女</td><td>萩原健一</td></tr>
+<tr><td>035</td><td>大井追っかけ音次郎</td><td>氷川きよし</td></tr>
+<tr><td>036</td><td>シクラメンのかほり</td><td>布施 明</td></tr>
+<tr><td>037</td><td>あなたに逢いたくて～Missing You～</td><td>松田聖子</td></tr>
+<tr><td>038</td><td>東尋坊</td><td>水森かおり</td></tr>
+<tr><td>039</td><td>愛の終着駅</td><td>八代亜紀</td></tr>
+<tr><td>040</td><td>くちなしの花</td><td>渡 哲也</td></tr>
+<tr><td>041</td><td>WAになっておどろう</td><td>Ｖ６</td></tr>
+<tr><td>042</td><td>Yeah! めっちゃホリディ</td><td>松浦亜弥</td></tr>
+<tr><td>043</td><td>I can't stop my love for you</td><td>愛内里菜</td></tr>
+<tr><td>044</td><td>いつも何度でも</td><td>木村 弓</td></tr>
+<tr><td>045</td><td>Get Over</td><td>ｄｒｅａｍ</td></tr>
+<tr><td>046</td><td>Dearest</td><td>浜崎あゆみ</td></tr>
+<tr><td>047</td><td>心の絆</td><td>Project D.M.M.</td></tr>
+<tr><td>048</td><td>Every Heart -ミンナノキモチ-</td><td>ＢｏＡ</td></tr>
+<tr><td>049</td><td>DANCE!おジャ魔女</td><td>ＭＡＨＯ堂</td></tr>
+<tr><td>050</td><td>もののけ姫</td><td>米良美一</td></tr>
+<tr><td>051</td><td>恍惚のブルース</td><td>青江三奈</td></tr>
+<tr><td>052</td><td>天城越え</td><td>石川さゆり</td></tr>
+<tr><td>053</td><td>夜明けの停車場</td><td>石橋正次</td></tr>
+<tr><td>054</td><td>千曲川</td><td>五木ひろし</td></tr>
+<tr><td>055</td><td>再り会い</td><td>五木ひろし</td></tr>
+<tr><td>056</td><td>噂の女</td><td>内山田洋とクールファイブ</td></tr>
+<tr><td>057</td><td>酒場にて</td><td>江利チエミ</td></tr>
+<tr><td>058</td><td>月に咲く花</td><td>大月みやこ</td></tr>
+<tr><td>059</td><td>恋あざみ</td><td>勝 彩也</td></tr>
+<tr><td>060</td><td>氷雨</td><td>佳山明生</td></tr>
+<tr><td>061</td><td>二輪草</td><td>川中美幸</td></tr>
+<tr><td>062</td><td>ふたりぐらし</td><td>川中美幸</td></tr>
+<tr><td>063</td><td>酒場</td><td>冠 二郎</td></tr>
+<tr><td>064</td><td>流恋草</td><td>香西かおり</td></tr>
+<tr><td>065</td><td>花挽歌</td><td>香西かおり</td></tr>
+<tr><td>066</td><td>望郷十年</td><td>香西かおり</td></tr>
+<tr><td>067</td><td>サン・トワ・マミー</td><td>越路吹雪</td></tr>
+<tr><td>068</td><td>おもいで酒</td><td>小林幸子</td></tr>
+<tr><td>069</td><td>とまり木</td><td>小林幸子</td></tr>
+<tr><td>070</td><td>あばれ太鼓</td><td>坂本冬美</td></tr>
+<tr><td>071</td><td>風に立つ</td><td>坂本冬美</td></tr>
+<tr><td>072</td><td>人生いろいろ</td><td>島倉千代子</td></tr>
+<tr><td>073</td><td>今日でお別れ</td><td>菅原洋一</td></tr>
+<tr><td>074</td><td>命くれない</td><td>瀬川瑛子</td></tr>
+<tr><td>075</td><td>女・・・ひとり旅</td><td>田川寿美</td></tr>
+<tr><td>076</td><td>君は心の妻だから</td><td>鶴岡雅義と東京ロマンチカ</td></tr>
+<tr><td>077</td><td>つぐない</td><td>テレサ・テン</td></tr>
+<tr><td>078</td><td>人生しみじみ・・・</td><td>天童よしみ</td></tr>
+<tr><td>079</td><td>おゆき</td><td>内藤国雄</td></tr>
+<tr><td>080</td><td>雪舞い</td><td>長保有紀</td></tr>
+<tr><td>081</td><td>ヘッドライト</td><td>新沼謙治</td></tr>
+<tr><td>082</td><td>愛始発</td><td>西方裕之</td></tr>
+<tr><td>083</td><td>星は何でも知っている</td><td>平尾昌晃</td></tr>
+<tr><td>084</td><td>３年目の浮気</td><td>ヒロシ＆キーボー</td></tr>
+<tr><td>085</td><td>おまえ</td><td>ぴんから兄弟</td></tr>
+<tr><td>086</td><td>雪 深深</td><td>藤あや子</td></tr>
+<tr><td>087</td><td>圭子の夢は夜ひらく</td><td>藤 圭子</td></tr>
+<tr><td>088</td><td>君は薔薇より美しい</td><td>布施 明</td></tr>
+<tr><td>089</td><td>いのち舟</td><td>細川たかし</td></tr>
+<tr><td>090</td><td>北酒場</td><td>細川たかし</td></tr>
+<tr><td>091</td><td>都会の天使たち</td><td>堀内孝雄・桂 銀淑</td></tr>
+<tr><td>092</td><td>そんな女のひとりごと</td><td>増位山太志郎</td></tr>
+<tr><td>093</td><td>愛燦燦</td><td>美空ひばり</td></tr>
+<tr><td>094</td><td>裏町酒場</td><td>美空ひばり</td></tr>
+<tr><td>095</td><td>東京セレナーデ</td><td>都はるみ</td></tr>
+<tr><td>096</td><td>僕は泣いちっち</td><td>守屋 浩</td></tr>
+<tr><td>097</td><td>俺ら東京さ行ぐだ</td><td>吉 幾三</td></tr>
+<tr><td>098</td><td>コモエスタ赤坂</td><td>ロス・インディオス</td></tr>
+<tr><td>099</td><td>別れても好きな人</td><td>ロス・インディオス＆シルビア</td></tr>
+<tr><td>100</td><td>水割り</td><td>渡 哲也</td></tr>
+<tr><td>101</td><td>釜山港へ帰れ</td><td>渥美二郎</td></tr>
+<tr><td>102</td><td>沈丁花</td><td>石川さゆり</td></tr>
+<tr><td>103</td><td>津軽海峡・冬景色</td><td>石川さゆり</td></tr>
+<tr><td>104</td><td>夜霧よ今夜もありがとう</td><td>石原裕次郎</td></tr>
+<tr><td>105</td><td>小指の想い出</td><td>伊東ゆかり</td></tr>
+<tr><td>106</td><td>長崎は今日も雨だった</td><td>内山田洋とクールファイブ</td></tr>
+<tr><td>107</td><td>孫</td><td>大泉逸郎</td></tr>
+<tr><td>108</td><td>別れの一本杉</td><td>春日八郎</td></tr>
+<tr><td>109</td><td>祝い船</td><td>門脇陸男</td></tr>
+<tr><td>110</td><td>豊後水道</td><td>川中美幸</td></tr>
+<tr><td>111</td><td>港恋唄</td><td>伍代夏子</td></tr>
+<tr><td>112</td><td>北帰行</td><td>小林 旭</td></tr>
+<tr><td>113</td><td>もしかしてPARTⅡ</td><td>小林幸子・美樹克彦</td></tr>
+<tr><td>114</td><td>昭和枯れすすき</td><td>さくらと一郎</td></tr>
+<tr><td>115</td><td>ウナ・セラ・ディ東京</td><td>ザ・ピーナッツ</td></tr>
+<tr><td>116</td><td>鳳仙花</td><td>島倉千代子</td></tr>
+<tr><td>117</td><td>望郷酒場</td><td>千 昌夫</td></tr>
+<tr><td>118</td><td>味噌汁の詩</td><td>千 昌夫</td></tr>
+<tr><td>119</td><td>愛して愛して愛しちゃったのよ</td><td>田代美代子・和田 弘とマヒナスターズ</td></tr>
+<tr><td>120</td><td>四つのお願い</td><td>ちあきなおみ</td></tr>
+<tr><td>121</td><td>空港</td><td>テレサ・テン</td></tr>
+<tr><td>122</td><td>夢・恋唄</td><td>天童よしみ</td></tr>
+<tr><td>123</td><td>わたし祈ってます</td><td>敏いとうとハッピー＆ブルー</td></tr>
+<tr><td>124</td><td>なみだの操</td><td>殿さまキングス</td></tr>
+<tr><td>125</td><td>兄弟船</td><td>鳥羽一郎</td></tr>
+<tr><td>126</td><td>純情行進曲</td><td>中澤裕子</td></tr>
+<tr><td>127</td><td>瀬戸の港</td><td>中村美律子</td></tr>
+<tr><td>128</td><td>京都慕情</td><td>渚ゆう子</td></tr>
+<tr><td>129</td><td>嫁に来ないか</td><td>新沼謙治</td></tr>
+<tr><td>130</td><td>一円玉の旅がらす</td><td>晴山さおり</td></tr>
+<tr><td>131</td><td>男と女のラブゲーム</td><td>日野美歌・葵 司朗</td></tr>
+<tr><td>132</td><td>命預けます</td><td>藤 圭子</td></tr>
+<tr><td>133</td><td>南国土佐を後にして</td><td>ペギー葉山</td></tr>
+<tr><td>134</td><td>ほおずき</td><td>松原のぶえ</td></tr>
+<tr><td>135</td><td>かりそめの花</td><td>水森かおり</td></tr>
+<tr><td>136</td><td>竜飛岬</td><td>水森かおり</td></tr>
+<tr><td>137</td><td>みだれ髪</td><td>美空ひばり</td></tr>
+<tr><td>138</td><td>だんな様</td><td>三船和子</td></tr>
+<tr><td>139</td><td>ふたりの大阪</td><td>都はるみ・宮崎 雅</td></tr>
+<tr><td>140</td><td>涙をふいて</td><td>三好鉄生</td></tr>
+<tr><td>141</td><td>おやじの海</td><td>村木賢吉</td></tr>
+<tr><td>142</td><td>嫁ぐ日よ</td><td>村田英雄</td></tr>
+<tr><td>143</td><td>おふくろさん</td><td>森 進一</td></tr>
+<tr><td>144</td><td>哀しみ本線日本海</td><td>森 昌子</td></tr>
+<tr><td>145</td><td>雨の慕情</td><td>八代亜紀</td></tr>
+<tr><td>146</td><td>舟唄</td><td>八代亜紀</td></tr>
+<tr><td>147</td><td>出張物語</td><td>吉 幾三・川中美幸</td></tr>
+<tr><td>148</td><td>カスマプゲ（胸がせつない）</td><td>李 成愛</td></tr>
+<tr><td>149</td><td>奥飛騨慕情</td><td>竜 鉄也</td></tr>
+<tr><td>150</td><td>みちづれ</td><td>渡 哲也</td></tr>
+<tr><td>151</td><td>メランコリー</td><td>梓みちよ</td></tr>
+<tr><td>152</td><td>他人酒</td><td>渥美二郎</td></tr>
+<tr><td>153</td><td>夢追い酒</td><td>渥美二郎</td></tr>
+<tr><td>154</td><td>ああ上野駅</td><td>井沢八郎</td></tr>
+<tr><td>155</td><td>能登半島</td><td>石川さゆり</td></tr>
+<tr><td>156</td><td>嵐を呼ぶ男</td><td>石原裕次郎</td></tr>
+<tr><td>157</td><td>わが人生に悔いなし</td><td>石原裕次郎</td></tr>
+<tr><td>158</td><td>愛しつづけるボレロ</td><td>五木ひろし</td></tr>
+<tr><td>159</td><td>酒ひとり</td><td>五木ひろし</td></tr>
+<tr><td>160</td><td>長崎から船に乗って</td><td>五木ひろし</td></tr>
+<tr><td>161</td><td>居酒屋</td><td>五木ひろし・木の実ナナ</td></tr>
+<tr><td>162</td><td>中の島ブルース</td><td>内山田洋とクールファイブ</td></tr>
+<tr><td>163</td><td>雨のエアポート</td><td>欧陽菲菲</td></tr>
+<tr><td>164</td><td>雨の御堂筋</td><td>欧陽菲菲</td></tr>
+<tr><td>165</td><td>忘れていいの -愛の幕切れ-</td><td>小川知子・谷村新司</td></tr>
+<tr><td>166</td><td>まつり</td><td>北島三郎</td></tr>
+<tr><td>167</td><td>与作</td><td>北島三郎</td></tr>
+<tr><td>168</td><td>浪花節だよ人生は</td><td>木村友衛</td></tr>
+<tr><td>169</td><td>時には娼婦のように</td><td>黒沢年男</td></tr>
+<tr><td>170</td><td>プリーズ・・・</td><td>桂 銀淑</td></tr>
+<tr><td>171</td><td>ベサメムーチョ</td><td>桂 銀淑</td></tr>
+<tr><td>172</td><td>真夜中のシャワー</td><td>桂 銀淑</td></tr>
+<tr><td>173</td><td>お久しぶりね</td><td>小柳ルミ子</td></tr>
+<tr><td>174</td><td>瀬戸の花嫁</td><td>小柳ルミ子</td></tr>
+<tr><td>175</td><td>憂き世春秋</td><td>島津亜矢</td></tr>
+<tr><td>176</td><td>めぐり逢いふたたび</td><td>杉良太郎</td></tr>
+<tr><td>177</td><td>心凍らせて</td><td>高山 厳</td></tr>
+<tr><td>178</td><td>トーキョー・トワイライト～あなたに帰りたい～</td><td>チェウニ</td></tr>
+<tr><td>179</td><td>珍島物語</td><td>天童よしみ</td></tr>
+<tr><td>180</td><td>演歌船</td><td>鳥羽一郎</td></tr>
+<tr><td>181</td><td>瞼の母</td><td>中村美律子</td></tr>
+<tr><td>182</td><td>父さんの詩</td><td>長山洋子</td></tr>
+<tr><td>183</td><td>津軽の花</td><td>原田悠里</td></tr>
+<tr><td>184</td><td>箱根八里の半次郎</td><td>氷川きよし</td></tr>
+<tr><td>185</td><td>み・れ・ん</td><td>藤あや子</td></tr>
+<tr><td>186</td><td>霧の摩周湖</td><td>布施 明</td></tr>
+<tr><td>187</td><td>心のこり</td><td>細川たかし</td></tr>
+<tr><td>188</td><td>みちづれ</td><td>牧村三枝子</td></tr>
+<tr><td>189</td><td>銀座ブルース</td><td>松尾和子・和田 弘とマヒナスターズ</td></tr>
+<tr><td>190</td><td>にごり川</td><td>松原のぶえ</td></tr>
+<tr><td>191</td><td>さそり座の女</td><td>美川憲一</td></tr>
+<tr><td>192</td><td>真赤な太陽</td><td>美空ひばり・ブルー・コメッツ</td></tr>
+<tr><td>193</td><td>北の宿から</td><td>都はるみ</td></tr>
+<tr><td>194</td><td>初恋</td><td>村下孝蔵</td></tr>
+<tr><td>195</td><td>人生峠</td><td>村田英雄</td></tr>
+<tr><td>196</td><td>しのび恋</td><td>八代亜紀</td></tr>
+<tr><td>197</td><td>旅の終りはお前</td><td>山本譲二</td></tr>
+<tr><td>198</td><td>みちのくひとり旅</td><td>山本譲二</td></tr>
+<tr><td>199</td><td>雪國</td><td>吉 幾三</td></tr>
+<tr><td>200</td><td>笑って許して</td><td>和田アキ子</td></tr>
+<tr><td>201</td><td>大阪ブルース</td><td>青江三奈</td></tr>
+<tr><td>202</td><td>娘よ</td><td>芦屋雁之助</td></tr>
+<tr><td>203</td><td>漁歌挽歌</td><td>石川さゆり</td></tr>
+<tr><td>204</td><td>命燃やして</td><td>石川さゆり</td></tr>
+<tr><td>205</td><td>ブルー・ライト・ヨコハマ</td><td>いしだあゆみ</td></tr>
+<tr><td>206</td><td>粋な別れ</td><td>石原裕次郎</td></tr>
+<tr><td>207</td><td>細雪</td><td>五木ひろし</td></tr>
+<tr><td>208</td><td>大阪ラプソディー</td><td>海原千里・万里</td></tr>
+<tr><td>209</td><td>夢芝居</td><td>梅沢富美男</td></tr>
+<tr><td>210</td><td>無錫旅情</td><td>尾形大作</td></tr>
+<tr><td>211</td><td>海・その愛</td><td>加山雄三</td></tr>
+<tr><td>212</td><td>あずさ２号</td><td>狩人</td></tr>
+<tr><td>213</td><td>越前岬</td><td>川中美幸</td></tr>
+<tr><td>214</td><td>ふたりの絆</td><td>川中美幸</td></tr>
+<tr><td>215</td><td>川</td><td>北島三郎</td></tr>
+<tr><td>216</td><td>石狩挽歌</td><td>北原ミレイ</td></tr>
+<tr><td>217</td><td>愛始発</td><td>桂 銀淑・浜 圭介</td></tr>
+<tr><td>218</td><td>北空港</td><td>桂 銀淑・浜 圭介</td></tr>
+<tr><td>219</td><td>無言坂</td><td>香西かおり</td></tr>
+<tr><td>220</td><td>北へ</td><td>小林 旭</td></tr>
+<tr><td>221</td><td>福寿草</td><td>小林幸子</td></tr>
+<tr><td>222</td><td>夜桜お七</td><td>坂本冬美</td></tr>
+<tr><td>223</td><td>恋のバカンス</td><td>ザ・ピーナッツ</td></tr>
+<tr><td>224</td><td>すきま風</td><td>杉良太郎</td></tr>
+<tr><td>225</td><td>アケミという名で十八で</td><td>千 昌夫</td></tr>
+<tr><td>226</td><td>北国の春</td><td>千 昌夫</td></tr>
+<tr><td>227</td><td>喝采</td><td>ちあきなおみ</td></tr>
+<tr><td>228</td><td>愛人</td><td>テレサ・テン</td></tr>
+<tr><td>229</td><td>別れの予感</td><td>テレサ・テン</td></tr>
+<tr><td>230</td><td>おまえ</td><td>天童よしみ</td></tr>
+<tr><td>231</td><td>ふたり舟</td><td>徳巻駒子</td></tr>
+<tr><td>232</td><td>浮草の宿</td><td>殿さまキングス</td></tr>
+<tr><td>233</td><td>河内おとこ節</td><td>中村美律子</td></tr>
+<tr><td>234</td><td>京都の恋</td><td>渚ゆう子</td></tr>
+<tr><td>235</td><td>めぐり逢い</td><td>野中二郎</td></tr>
+<tr><td>236</td><td>木曽路の女</td><td>原田悠里</td></tr>
+<tr><td>237</td><td>愛が生まれた日</td><td>藤谷美和子・大内義昭</td></tr>
+<tr><td>238</td><td>愛しき日々</td><td>堀内孝雄</td></tr>
+<tr><td>239</td><td>帰ってこいよ</td><td>松村和子</td></tr>
+<tr><td>240</td><td>君こそわが命</td><td>水原 弘</td></tr>
+<tr><td>241</td><td>男</td><td>美空ひばり</td></tr>
+<tr><td>242</td><td>おまえに惚れた</td><td>美空ひばり</td></tr>
+<tr><td>243</td><td>夫婦坂</td><td>都はるみ</td></tr>
+<tr><td>244</td><td>浪花恋しぐれ</td><td>都はるみ・岡 千秋</td></tr>
+<tr><td>245</td><td>襟裳岬</td><td>森 進一</td></tr>
+<tr><td>246</td><td>おんなの涙</td><td>八代亜紀</td></tr>
+<tr><td>247</td><td>なみだ川</td><td>八代亜紀</td></tr>
+<tr><td>248</td><td>こころ花</td><td>山川 豊</td></tr>
+<tr><td>249</td><td>竹とんぼ</td><td>山本譲二</td></tr>
+<tr><td>250</td><td>酒よ</td><td>吉 幾三</td></tr>
+<tr><td>251</td><td>おんなの涙</td><td>秋吉恵美</td></tr>
+<tr><td>252</td><td>二人でお酒を</td><td>梓みちよ</td></tr>
+<tr><td>253</td><td>風の盆恋歌</td><td>石川さゆり</td></tr>
+<tr><td>254</td><td>北しぐれ</td><td>石原詢子</td></tr>
+<tr><td>255</td><td>恋の町札幌</td><td>石原裕次郎</td></tr>
+<tr><td>256</td><td>ブランデーグラス</td><td>石原裕次郎</td></tr>
+<tr><td>257</td><td>おんな坂</td><td>泉ちどり</td></tr>
+<tr><td>258</td><td>そして・・・めぐり逢い</td><td>五木ひろし</td></tr>
+<tr><td>259</td><td>ラヴ・イズ・オーヴァー</td><td>欧陽菲菲</td></tr>
+<tr><td>260</td><td>さざんかの宿</td><td>大川栄策</td></tr>
+<tr><td>261</td><td>シルエット・ロマンス</td><td>大橋純子</td></tr>
+<tr><td>262</td><td>浮草</td><td>岡ゆう子</td></tr>
+<tr><td>263</td><td>百万本のバラ</td><td>加藤登紀子</td></tr>
+<tr><td>264</td><td>サライ</td><td>加山雄三・谷村新司</td></tr>
+<tr><td>265</td><td>ふたり酒</td><td>川中美幸</td></tr>
+<tr><td>266</td><td>みれん酒</td><td>冠 二郎</td></tr>
+<tr><td>267</td><td>北の漁場</td><td>北島三郎</td></tr>
+<tr><td>268</td><td>すずめの涙</td><td>桂 銀淑</td></tr>
+<tr><td>269</td><td>雨酒場</td><td>香西かおり</td></tr>
+<tr><td>270</td><td>ラストダンスは私に</td><td>越路吹雪</td></tr>
+<tr><td>271</td><td>昔の名前で出ています</td><td>小林 旭</td></tr>
+<tr><td>272</td><td>雪椿</td><td>小林幸子</td></tr>
+<tr><td>273</td><td>恋は火の舞 剣の舞</td><td>坂本冬美</td></tr>
+<tr><td>274</td><td>ふたり咲き</td><td>坂本冬美</td></tr>
+<tr><td>275</td><td>海鳴り</td><td>さやま友香</td></tr>
+<tr><td>276</td><td>夕焼け雲</td><td>千 昌夫</td></tr>
+<tr><td>277</td><td>哀愁港</td><td>田川寿美</td></tr>
+<tr><td>278</td><td>泣かないで</td><td>館ひろし</td></tr>
+<tr><td>279</td><td>想いで迷子</td><td>チョー・ヨンピル</td></tr>
+<tr><td>280</td><td>時の流れに身をまかせ</td><td>テレサ・テン</td></tr>
+<tr><td>281</td><td>あばれ玄海</td><td>天童よしみ</td></tr>
+<tr><td>282</td><td>星降る街角</td><td>敏いとうとハッピー＆ブルー</td></tr>
+<tr><td>283</td><td>雪舞い</td><td>豊島ひとみ</td></tr>
+<tr><td>284</td><td>うそ</td><td>中条きよし</td></tr>
+<tr><td>285</td><td>捨てられて</td><td>長山洋子</td></tr>
+<tr><td>286</td><td>今夜は離さない</td><td>橋 幸夫・安倍里葎子</td></tr>
+<tr><td>287</td><td>ほろり酒</td><td>原田悠里</td></tr>
+<tr><td>288</td><td>むらさき雨情</td><td>藤あや子</td></tr>
+<tr><td>289</td><td>矢切の渡し</td><td>細川たかし</td></tr>
+<tr><td>290</td><td>影法師</td><td>堀内孝雄</td></tr>
+<tr><td>291</td><td>演歌みち</td><td>松原のぶえ</td></tr>
+<tr><td>292</td><td>おんな道</td><td>美空ひばり</td></tr>
+<tr><td>293</td><td>川の流れのように</td><td>美空ひばり</td></tr>
+<tr><td>294</td><td>大阪しぐれ</td><td>都はるみ</td></tr>
+<tr><td>295</td><td>越冬つばめ</td><td>森 昌子</td></tr>
+<tr><td>296</td><td>あなたと生きる</td><td>八代亜紀</td></tr>
+<tr><td>297</td><td>アメリカ橋</td><td>山川 豊</td></tr>
+<tr><td>298</td><td>ひまわり</td><td>山田晃士</td></tr>
+<tr><td>299</td><td>酔歌</td><td>吉 幾三</td></tr>
+<tr><td>300</td><td>ほおずき</td><td>渡 哲也</td></tr>
+<tr><td>301</td><td>滝の白糸</td><td>石川さゆり</td></tr>
+<tr><td>302</td><td>ひとりのクラブ</td><td>石原裕次郎</td></tr>
+<tr><td>303</td><td>ふたり傘</td><td>石原詢子</td></tr>
+<tr><td>304</td><td>明日坂</td><td>石原詢子</td></tr>
+<tr><td>305</td><td>アカシア挽歌</td><td>五木ひろし</td></tr>
+<tr><td>306</td><td>よこはまたそがれ</td><td>五木ひろし</td></tr>
+<tr><td>307</td><td>逢えて・・・横浜</td><td>五木ひろし</td></tr>
+<tr><td>308</td><td>夜空</td><td>五木ひろし</td></tr>
+<tr><td>309</td><td>そして、神戸</td><td>内山田洋とクールファイブ</td></tr>
+<tr><td>310</td><td>より添い花</td><td>大月みやこ</td></tr>
+<tr><td>311</td><td>夫婦みち</td><td>オーロラ輝子（河合美智子）</td></tr>
+<tr><td>312</td><td>ごめんね・・・ジロー</td><td>奥村チヨ</td></tr>
+<tr><td>313</td><td>淡雪の橋</td><td>鏡 五郎</td></tr>
+<tr><td>314</td><td>おまえさん</td><td>金田たつえ</td></tr>
+<tr><td>315</td><td>おんなの一生 ～汗の花～</td><td>川中美幸</td></tr>
+<tr><td>316</td><td>山</td><td>北島三郎</td></tr>
+<tr><td>317</td><td>片道切符</td><td>北山たけし</td></tr>
+<tr><td>318</td><td>はぐれ恋</td><td>キム・ヨンジャ</td></tr>
+<tr><td>319</td><td>北の秋桜</td><td>キム・ヨンジャ</td></tr>
+<tr><td>320</td><td>北の雪虫</td><td>キム・ヨンジャ</td></tr>
+<tr><td>321</td><td>伊豆の宿</td><td>香田 晋</td></tr>
+<tr><td>322</td><td>奥飛騨縁歌</td><td>香田 晋</td></tr>
+<tr><td>323</td><td>ろくでなし</td><td>越路吹雪</td></tr>
+<tr><td>324</td><td>ついて来るかい</td><td>小林 旭</td></tr>
+<tr><td>325</td><td>ふたたびの</td><td>小林幸子</td></tr>
+<tr><td>326</td><td>わたしの城下町</td><td>小柳ルミ子</td></tr>
+<tr><td>327</td><td>火の国の女</td><td>坂本冬美</td></tr>
+<tr><td>328</td><td>気まぐれ道中</td><td>坂本冬美</td></tr>
+<tr><td>329</td><td>浮雲ふたり</td><td>神野美伽</td></tr>
+<tr><td>330</td><td>アマン</td><td>菅原洋一＆シルビア</td></tr>
+<tr><td>331</td><td>再会</td><td>杉田二郎</td></tr>
+<tr><td>332</td><td>あなたと共に生きてゆく</td><td>テレサ・テン</td></tr>
+<tr><td>333</td><td>美しい昔</td><td>天童よしみ</td></tr>
+<tr><td>334</td><td>夢うぐいす</td><td>天童よしみ</td></tr>
+<tr><td>335</td><td>理由</td><td>中条きよし</td></tr>
+<tr><td>336</td><td>じょんから女節</td><td>長山洋子</td></tr>
+<tr><td>337</td><td>湯けむりの宿</td><td>西方裕之</td></tr>
+<tr><td>338</td><td>アカシアの雨がやむとき</td><td>西田佐知子</td></tr>
+<tr><td>339</td><td>氷見（ひみ）の雪</td><td>原田悠里</td></tr>
+<tr><td>340</td><td>きよしのドドンパ</td><td>氷川きよし</td></tr>
+<tr><td>341</td><td>星空の秋子</td><td>氷川きよし</td></tr>
+<tr><td>342</td><td>男と女のお話</td><td>日吉ミミ</td></tr>
+<tr><td>343</td><td>夫婦ごころ</td><td>細川たかし</td></tr>
+<tr><td>344</td><td>北国へ</td><td>細川たかし</td></tr>
+<tr><td>345</td><td>かくれんぼ</td><td>堀内孝雄</td></tr>
+<tr><td>346</td><td>河</td><td>堀内孝雄</td></tr>
+<tr><td>347</td><td>千年の古都</td><td>都はるみ</td></tr>
+<tr><td>348</td><td>女のみち</td><td>宮 史郎とぴんからトリオ</td></tr>
+<tr><td>349</td><td>北の螢</td><td>森 進一</td></tr>
+<tr><td>350</td><td>せんせい</td><td>森 昌子</td></tr>
+<tr><td>351</td><td>私の彼は左きき</td><td>麻丘めぐみ</td></tr>
+<tr><td>352</td><td>みずいろの手紙</td><td>あべ静江</td></tr>
+<tr><td>353</td><td>恋する夏の日</td><td>天地真理</td></tr>
+<tr><td>354</td><td>空に星があるように</td><td>荒木一郎</td></tr>
+<tr><td>355</td><td>ホテル・カリフォルニア Hotel California</td><td>イーグルス</td></tr>
+<tr><td>356</td><td>ルイジアナ・ママ Louisiana Mama</td><td>飯田久彦</td></tr>
+<tr><td>357</td><td>ひまわり娘</td><td>伊藤咲子</td></tr>
+<tr><td>358</td><td>ロマンス</td><td>岩崎宏美</td></tr>
+<tr><td>359</td><td>恋の奴隷</td><td>奥村チヨ</td></tr>
+<tr><td>360</td><td>マイ・ピュア・レディ</td><td>尾崎亜美</td></tr>
+<tr><td>361</td><td>他人の関係</td><td>金井克子</td></tr>
+<tr><td>362</td><td>酒と泪と男と女</td><td>河島英五</td></tr>
+<tr><td>363</td><td>春一番</td><td>キャンディーズ</td></tr>
+<tr><td>364</td><td>あばよ</td><td>研ナオコ</td></tr>
+<tr><td>365</td><td>傷だらけのローラ</td><td>西城秀樹</td></tr>
+<tr><td>366</td><td>街の灯り</td><td>堺 正章</td></tr>
+<tr><td>367</td><td>ステキなタイミング Good Timin'</td><td>坂本 九</td></tr>
+<tr><td>368</td><td>危険なふたり</td><td>沢田研二</td></tr>
+<tr><td>369</td><td>追憶</td><td>沢田研二</td></tr>
+<tr><td>370</td><td>憎みきれないろくでなし</td><td>沢田研二</td></tr>
+<tr><td>371</td><td>港のヨーコ・ヨコハマ・ヨコスカ</td><td>ダウン・タウン・ブギウギ・バンド</td></tr>
+<tr><td>372</td><td>硝子坂</td><td>高田みづえ</td></tr>
+<tr><td>373</td><td>あんたのバラード</td><td>世良公則＆ツイスト</td></tr>
+<tr><td>374</td><td>想い出ぼろぼろ</td><td>内藤やす子</td></tr>
+<tr><td>375</td><td>アザミ嬢のララバイ</td><td>中島みゆき</td></tr>
+<tr><td>376</td><td>東京ららばい</td><td>中原理恵</td></tr>
+<tr><td>377</td><td>空に太陽がある限り</td><td>にしきのあきら</td></tr>
+<tr><td>378</td><td>女の意地</td><td>西田佐知子</td></tr>
+<tr><td>379</td><td>コーヒー・ルンバ</td><td>西田佐知子</td></tr>
+<tr><td>380</td><td>私鉄沿線</td><td>野口五郎</td></tr>
+<tr><td>381</td><td>一度だけなら</td><td>野村真樹</td></tr>
+<tr><td>382</td><td>路地裏の少年</td><td>浜田省吾</td></tr>
+<tr><td>383</td><td>夜と朝のあいだに</td><td>ピーター</td></tr>
+<tr><td>384</td><td>愛の奇跡</td><td>ヒデとロザンナ</td></tr>
+<tr><td>385</td><td>ハチのムサシは死んだのさ</td><td>平田隆夫とセルスターズ</td></tr>
+<tr><td>386</td><td>真夏の出来事</td><td>平山三紀</td></tr>
+<tr><td>387</td><td>オネスティ Honesty</td><td>ビリー・ジョエル</td></tr>
+<tr><td>388</td><td>亜麻色の髪の乙女</td><td>ヴィレッジ・シンガーズ</td></tr>
+<tr><td>389</td><td>Ｓ・Ｏ・Ｓ</td><td>ピンク・レディー</td></tr>
+<tr><td>390</td><td>恋のダイヤル６７００</td><td>フィンガー５</td></tr>
+<tr><td>391</td><td>白い色は恋人の色</td><td>ベッツィ＆クリス</td></tr>
+<tr><td>392</td><td>あの日にかえりたい</td><td>荒井由実</td></tr>
+<tr><td>393</td><td>天使の誘惑</td><td>黛ジュン</td></tr>
+<tr><td>394</td><td>黒ネコのタンゴ</td><td>皆川おさむ</td></tr>
+<tr><td>395</td><td>時間よ止まれ</td><td>矢沢永吉</td></tr>
+<tr><td>396</td><td>秋桜（コスモス）</td><td>山口百恵</td></tr>
+<tr><td>397</td><td>ひと夏の経験</td><td>山口百恵</td></tr>
+<tr><td>398</td><td>狙いうち</td><td>山本リンダ</td></tr>
+<tr><td>399</td><td>手紙</td><td>由紀さおり</td></tr>
+<tr><td>400</td><td>夜明けのスキャット</td><td>由紀さおり</td></tr>
+<tr><td>401</td><td>待つわ</td><td>あみん</td></tr>
+<tr><td>402</td><td>思いきりアメリカン</td><td>杏里</td></tr>
+<tr><td>403</td><td>ラ・セゾン</td><td>アン・ルイス</td></tr>
+<tr><td>404</td><td>ハイスクールララバイ</td><td>イモ欽トリオ</td></tr>
+<tr><td>405</td><td>すみれ色の涙</td><td>岩崎宏美</td></tr>
+<tr><td>406</td><td>たそがれマイ・ラブ</td><td>大橋純子</td></tr>
+<tr><td>407</td><td>HERO ～ヒーローになる時、それは今～</td><td>甲斐バンド</td></tr>
+<tr><td>408</td><td>スマイル・フォー・ミー</td><td>河合奈保子</td></tr>
+<tr><td>409</td><td>大都会</td><td>クリスタルキング</td></tr>
+<tr><td>410</td><td>私のハートはストップモーション</td><td>桑江知子</td></tr>
+<tr><td>411</td><td>セクシャルバイオレットNo.1</td><td>桑名正博</td></tr>
+<tr><td>412</td><td>かもめはかもめ</td><td>研ナオコ</td></tr>
+<tr><td>413</td><td>お嫁サンバ</td><td>郷ひろみ</td></tr>
+<tr><td>414</td><td>How many いい顔</td><td>郷ひろみ</td></tr>
+<tr><td>415</td><td>林檎殺人事件</td><td>郷ひろみ・樹木希林</td></tr>
+<tr><td>416</td><td>ギンギラギンにさりげなく</td><td>近藤真彦</td></tr>
+<tr><td>417</td><td>いとしのエリー</td><td>サザンオールスターズ</td></tr>
+<tr><td>418</td><td>チャコの海岸物語</td><td>サザンオールスターズ</td></tr>
+<tr><td>419</td><td>ガラスのジェネレーション</td><td>佐野元春</td></tr>
+<tr><td>420</td><td>キッスは目にして！</td><td>ザ・ヴィーナス</td></tr>
+<tr><td>421</td><td>ダーリング</td><td>沢田研二</td></tr>
+<tr><td>422</td><td>ランナウェイ</td><td>シャネルズ</td></tr>
+<tr><td>423</td><td>ウェディング・ベル</td><td>SUGAR</td></tr>
+<tr><td>424</td><td>魅せられて</td><td>ジュディ・オング</td></tr>
+<tr><td>425</td><td>飛んでイスタンブール</td><td>庄野真代</td></tr>
+<tr><td>426</td><td>不思議なピーチパイ</td><td>竹内まりや</td></tr>
+<tr><td>427</td><td>昴 －すばる－</td><td>谷村新司</td></tr>
+<tr><td>428</td><td>悲しみ TOO ヤング</td><td>田原俊彦</td></tr>
+<tr><td>429</td><td>万里の河</td><td>チャゲ＆飛鳥</td></tr>
+<tr><td>430</td><td>燃えろいい女</td><td>ツイスト</td></tr>
+<tr><td>431</td><td>悪女</td><td>中島みゆき</td></tr>
+<tr><td>432</td><td>順子</td><td>長渕 剛</td></tr>
+<tr><td>433</td><td>スローモーション</td><td>中森明菜</td></tr>
+<tr><td>434</td><td>メモリーグラス</td><td>堀江 淳</td></tr>
+<tr><td>435</td><td>青い珊瑚礁</td><td>松田聖子</td></tr>
+<tr><td>436</td><td>赤いスイートピー</td><td>松田聖子</td></tr>
+<tr><td>437</td><td>真珠のピアス</td><td>松任谷由実</td></tr>
+<tr><td>438</td><td>守ってあげたい</td><td>松任谷由実</td></tr>
+<tr><td>439</td><td>センチメンタル・ジャーニー</td><td>松本伊代</td></tr>
+<tr><td>440</td><td>長い夜</td><td>松山千春</td></tr>
+<tr><td>441</td><td>カリフォルニア・コネクション</td><td>水谷 豊</td></tr>
+<tr><td>442</td><td>スローなブギにしてくれ (I want you)</td><td>南 佳孝</td></tr>
+<tr><td>443</td><td>ダンシング・オールナイト</td><td>もんた＆ブラザーズ</td></tr>
+<tr><td>444</td><td>春咲小紅</td><td>矢野顕子</td></tr>
+<tr><td>445</td><td>さよならの向う側</td><td>山口百恵</td></tr>
+<tr><td>446</td><td>絶体絶命</td><td>山口百恵</td></tr>
+<tr><td>447</td><td>美・サイレント</td><td>山口百恵</td></tr>
+<tr><td>448</td><td>プレイバック Part2</td><td>山口百恵</td></tr>
+<tr><td>449</td><td>RIDE ON TIME</td><td>山下達郎</td></tr>
+<tr><td>450</td><td>ツッパリHigh School Rock'n Roll（登校編）</td><td>横浜銀蝿</td></tr>
+<tr><td>451</td><td>恋心</td><td>相川七瀬</td></tr>
+<tr><td>452</td><td>A walk in the park</td><td>安室奈美恵</td></tr>
+<tr><td>453</td><td>Body Feels EXIT</td><td>安室奈美恵</td></tr>
+<tr><td>454</td><td>モノクローム・ヴィーナス</td><td>池田 聡</td></tr>
+<tr><td>455</td><td>彼女と TIP ON DUO</td><td>今井美樹</td></tr>
+<tr><td>456</td><td>愛が止まらない ～Turn it into love～</td><td>Wink</td></tr>
+<tr><td>457</td><td>ENDLESS RAIN</td><td>X</td></tr>
+<tr><td>458</td><td>出逢った頃のように</td><td>Every Little Thing</td></tr>
+<tr><td>459</td><td>花（すべての人の心に花を）</td><td>おおたか静流</td></tr>
+<tr><td>460</td><td>TOMORROW</td><td>岡本真夜</td></tr>
+<tr><td>461</td><td>１５の夜</td><td>尾崎 豊</td></tr>
+<tr><td>462</td><td>セーラー服を脱がさないで</td><td>おニャン子クラブ</td></tr>
+<tr><td>463</td><td>Forever My Love</td><td>小野正利</td></tr>
+<tr><td>464</td><td>I'm Proud</td><td>華原朋美</td></tr>
+<tr><td>465</td><td>サイレント・イヴ</td><td>辛島美登里</td></tr>
+<tr><td>466</td><td>けんかをやめて</td><td>河合奈保子</td></tr>
+<tr><td>467</td><td>ラ・ヴィアンローズ</td><td>吉川晃司</td></tr>
+<tr><td>468</td><td>流星のサドル</td><td>久保田利伸</td></tr>
+<tr><td>469</td><td>夏の日の１９９３</td><td>ｃｌａｓｓ</td></tr>
+<tr><td>470</td><td>艶姿ナミダ娘</td><td>小泉今日子</td></tr>
+<tr><td>471</td><td>素敵なラブリーボーイ</td><td>小泉今日子</td></tr>
+<tr><td>472</td><td>夜明けのＭＥＷ</td><td>小泉今日子</td></tr>
+<tr><td>473</td><td>愚か者</td><td>近藤真彦</td></tr>
+<tr><td>474</td><td>君がいない</td><td>ＺＡＲＤ</td></tr>
+<tr><td>475</td><td>みんなのうた</td><td>サザンオールスターズ</td></tr>
+<tr><td>476</td><td>TRAIN-TRAIN</td><td>THE BLUE HEARTS</td></tr>
+<tr><td>477</td><td>Over Drive</td><td>JUDY AND MARY</td></tr>
+<tr><td>478</td><td>Choo Choo TRAIN</td><td>ＺＯＯ</td></tr>
+<tr><td>479</td><td>青いイナズマ</td><td>ＳＭＡＰ</td></tr>
+<tr><td>480</td><td>夜空ノムコウ</td><td>ＳＭＡＰ</td></tr>
+<tr><td>481</td><td>それが大事</td><td>大事ＭＡＮブラザーズバンド</td></tr>
+<tr><td>482</td><td>桃色吐息</td><td>高橋真梨子</td></tr>
+<tr><td>483</td><td>駅</td><td>竹内まりや</td></tr>
+<tr><td>484</td><td>神様ヘルプ！</td><td>チェッカーズ</td></tr>
+<tr><td>485</td><td>壊れかけのRadio</td><td>徳永英明</td></tr>
+<tr><td>486</td><td>乾杯</td><td>長渕 剛</td></tr>
+<tr><td>487</td><td>サザン・ウインド</td><td>中森明菜</td></tr>
+<tr><td>488</td><td>十戒（１９８４）</td><td>中森明菜</td></tr>
+<tr><td>489</td><td>今を抱きしめて</td><td>NOA（仙道敦子＆吉田栄作）</td></tr>
+<tr><td>490</td><td>大きな玉ねぎの下で ～はるかなる想い～</td><td>BAKUFU-SLUMP</td></tr>
+<tr><td>491</td><td>恋心 ～KOI-GOKORO～</td><td>Ｂ’ｚ</td></tr>
+<tr><td>492</td><td>LADY NAVIGATION</td><td>Ｂ’ｚ</td></tr>
+<tr><td>493</td><td>パラダイス銀河</td><td>光ＧＥＮＪＩ</td></tr>
+<tr><td>494</td><td>MELODY</td><td>福山雅治</td></tr>
+<tr><td>495</td><td>ジュリアン</td><td>PRINCESS PRINCESS</td></tr>
+<tr><td>496</td><td>どんなときも。</td><td>槇原敬之</td></tr>
+<tr><td>497</td><td>ANNIVERSARY～無限にCALLING YOU～</td><td>松任谷由実</td></tr>
+<tr><td>498</td><td>やっぱ好きやねん</td><td>やしきたかじん</td></tr>
+<tr><td>499</td><td>フレンズ</td><td>レベッカ</td></tr>
+<tr><td>500</td><td>世界中の誰よりきっと〈PartⅡ〉</td><td>ＷＡＮＤＳ</td></tr>
+<tr><td>501</td><td>はじまりはいつも雨</td><td>ASKA</td></tr>
+<tr><td>502</td><td>恋人達のペイヴメント</td><td>アルフィー</td></tr>
+<tr><td>503</td><td>悲しみがとまらない</td><td>杏里</td></tr>
+<tr><td>504</td><td>ふたりの愛ランド</td><td>石川優子＆チャゲ</td></tr>
+<tr><td>505</td><td>ドラマティック・レイン</td><td>稲垣潤一</td></tr>
+<tr><td>506</td><td>いっそセレナーデ</td><td>井上陽水</td></tr>
+<tr><td>507</td><td>PRIDE</td><td>今井美樹</td></tr>
+<tr><td>508</td><td>ガッツだぜ！！</td><td>ウルフルズ</td></tr>
+<tr><td>509</td><td>チョット</td><td>大黒摩季</td></tr>
+<tr><td>510</td><td>長い間</td><td>Kiroro</td></tr>
+<tr><td>511</td><td>MUGO・ん・・・色っぽい</td><td>工藤静香</td></tr>
+<tr><td>512</td><td>Everything's All Right</td><td>倉木麻衣</td></tr>
+<tr><td>513</td><td>BELOVED</td><td>ＧＬＡＹ</td></tr>
+<tr><td>514</td><td>あなたに会えてよかった</td><td>小泉今日子</td></tr>
+<tr><td>515</td><td>ヤマトナデシコ七変化</td><td>小泉今日子</td></tr>
+<tr><td>516</td><td>Shake Hip!</td><td>米米ＣＬＵＢ</td></tr>
+<tr><td>517</td><td>あなたを好きだけど</td><td>ＺＡＲＤ</td></tr>
+<tr><td>518</td><td>ロード</td><td>THE 虎舞竜</td></tr>
+<tr><td>519</td><td>木蘭の涙</td><td>スターダスト・レビュー</td></tr>
+<tr><td>520</td><td>ALL MY TRUE LOVE</td><td>ＳＰＥＥＤ</td></tr>
+<tr><td>521</td><td>ＳＨＡＫＥ</td><td>ＳＭＡＰ</td></tr>
+<tr><td>522</td><td>ダンスはうまく踊れない</td><td>高樹 澪</td></tr>
+<tr><td>523</td><td>純愛ラプソディ</td><td>竹内まりや</td></tr>
+<tr><td>524</td><td>ごめんよ涙</td><td>田原俊彦</td></tr>
+<tr><td>525</td><td>モーニング ムーン</td><td>チャゲ＆飛鳥</td></tr>
+<tr><td>526</td><td>あー夏休み</td><td>チューブ</td></tr>
+<tr><td>527</td><td>EZ DO DANCE</td><td>ｔｒｆ</td></tr>
+<tr><td>528</td><td>離したくはない</td><td>T-BOLAN</td></tr>
+<tr><td>529</td><td>風のエオリア</td><td>徳永英明</td></tr>
+<tr><td>530</td><td>サンキュ．</td><td>Dreams Come True</td></tr>
+<tr><td>531</td><td>晴れたらいいね</td><td>Dreams Come True</td></tr>
+<tr><td>532</td><td>ＺＵＴＴＯ</td><td>永井真理子</td></tr>
+<tr><td>533</td><td>GOOD-BYE 青春</td><td>長渕 剛</td></tr>
+<tr><td>534</td><td>ツイてるね ノッてるね</td><td>中山美穂</td></tr>
+<tr><td>535</td><td>遠い街のどこかで・・・</td><td>中山美穂</td></tr>
+<tr><td>536</td><td>ｆｆ（フォルティシモ）</td><td>HOUND DOG</td></tr>
+<tr><td>537</td><td>teddy bear</td><td>浜崎あゆみ</td></tr>
+<tr><td>538</td><td>夏色のナンシー</td><td>早見 優</td></tr>
+<tr><td>539</td><td>時をかける少女</td><td>原田知世</td></tr>
+<tr><td>540</td><td>ゲレンデがとけるほど恋したい</td><td>広瀬香美</td></tr>
+<tr><td>541</td><td>Diamonds（ダイアモンド）</td><td>PRINCESS PRINCESS</td></tr>
+<tr><td>542</td><td>１９８６年のマリリン</td><td>本田美奈子</td></tr>
+<tr><td>543</td><td>埠頭を渡る風</td><td>松任谷由実</td></tr>
+<tr><td>544</td><td>イノセントワールド</td><td>Mr. Children</td></tr>
+<tr><td>545</td><td>抱きしめたい</td><td>Mr. Children</td></tr>
+<tr><td>546</td><td>LOVEマシーン</td><td>モーニング娘。</td></tr>
+<tr><td>547</td><td>１７才</td><td>森高千里</td></tr>
+<tr><td>548</td><td>LOVELAND ISLAND</td><td>山下達郎</td></tr>
+<tr><td>549</td><td>夏色</td><td>ゆず</td></tr>
+<tr><td>550</td><td>winter fall</td><td>L'Arc-en-Ciel</td></tr>
+<tr><td>551</td><td>CAN YOU CELEBRATE?</td><td>安室奈美恵</td></tr>
+<tr><td>552</td><td>六本木心中</td><td>アン・ルイス</td></tr>
+<tr><td>553</td><td>CHA-CHA-CHA</td><td>石井明美</td></tr>
+<tr><td>554</td><td>咲き誇れ愛しさよ</td><td>Wink</td></tr>
+<tr><td>555</td><td>First Love</td><td>宇多田ヒカル</td></tr>
+<tr><td>556</td><td>Forget-me-not</td><td>尾崎 豊</td></tr>
+<tr><td>557</td><td>TIME ZONE</td><td>男闘呼組</td></tr>
+<tr><td>558</td><td>春なのに</td><td>柏原芳恵</td></tr>
+<tr><td>559</td><td>冬のファンタジー</td><td>カズン</td></tr>
+<tr><td>560</td><td>save your dream</td><td>華原朋美</td></tr>
+<tr><td>561</td><td>雪にかいた LOVE LETTER</td><td>菊池桃子</td></tr>
+<tr><td>562</td><td>メタモルフォーゼ</td><td>工藤静香</td></tr>
+<tr><td>563</td><td>Missing</td><td>久保田利伸</td></tr>
+<tr><td>564</td><td>Can't Stop Fallin' in Love</td><td>ｇｌｏｂｅ</td></tr>
+<tr><td>565</td><td>マンピーのG★SPOT</td><td>サザンオールスターズ</td></tr>
+<tr><td>566</td><td>ア・ブラ・カダ・ブラ</td><td>米米ＣＬＵＢ</td></tr>
+<tr><td>567</td><td>揺れる想い</td><td>ＺＡＲＤ</td></tr>
+<tr><td>568</td><td>ギャランドゥ</td><td>西城秀樹</td></tr>
+<tr><td>569</td><td>シングルベッド</td><td>シャ乱Ｑ</td></tr>
+<tr><td>570</td><td>そばかす</td><td>JUDY AND MARY</td></tr>
+<tr><td>571</td><td>恋人</td><td>鈴木雅之</td></tr>
+<tr><td>572</td><td>BODY & SOUL</td><td>ＳＰＥＥＤ</td></tr>
+<tr><td>573</td><td>チェリー</td><td>スピッツ</td></tr>
+<tr><td>574</td><td>ジュリアに傷心</td><td>チェッカーズ</td></tr>
+<tr><td>575</td><td>シーズン・イン・ザ・サン</td><td>チューブ</td></tr>
+<tr><td>576</td><td>Bye For Now</td><td>T-BOLAN</td></tr>
+<tr><td>577</td><td>このまま君だけを奪い去りたい</td><td>DEEN</td></tr>
+<tr><td>578</td><td>Eyes to me</td><td>Dreams Come True</td></tr>
+<tr><td>579</td><td>未来予想図</td><td>Dreams Come True</td></tr>
+<tr><td>580</td><td>翼の折れたエンジェル</td><td>中村あゆみ</td></tr>
+<tr><td>581</td><td>ミ・アモーレ</td><td>中森明菜</td></tr>
+<tr><td>582</td><td>アジアの純真</td><td>Ｐｕｆｆｙ</td></tr>
+<tr><td>583</td><td>A Song for XX</td><td>浜崎あゆみ</td></tr>
+<tr><td>584</td><td>天国にいちばん近い島</td><td>原田知世</td></tr>
+<tr><td>585</td><td>部屋とＹシャツと私</td><td>平松愛理</td></tr>
+<tr><td>586</td><td>Another Orion</td><td>藤井フミヤ</td></tr>
+<tr><td>587</td><td>Ｍ</td><td>PRINCESS PRINCESS</td></tr>
+<tr><td>588</td><td>スリル</td><td>布袋寅泰</td></tr>
+<tr><td>589</td><td>HelloAgain～昔からある場所～</td><td>MY LITTLE LOVER</td></tr>
+<tr><td>590</td><td>ガラスの林檎</td><td>松田聖子</td></tr>
+<tr><td>591</td><td>大切なあなた</td><td>松田聖子</td></tr>
+<tr><td>592</td><td>PEARL-WHITE EVE</td><td>松田聖子</td></tr>
+<tr><td>593</td><td>つつみ込むように・・・</td><td>Ｍｉｓｉａ</td></tr>
+<tr><td>594</td><td>シーソーゲーム～勇敢な恋の歌～</td><td>Mr. Children</td></tr>
+<tr><td>595</td><td>サマーナイトタウン</td><td>モーニング娘。</td></tr>
+<tr><td>596</td><td>抱いてHOLD ON ME!</td><td>モーニング娘。</td></tr>
+<tr><td>597</td><td>渡良瀬橋</td><td>森高千里</td></tr>
+<tr><td>598</td><td>Maybe Blue</td><td>ユニコーン</td></tr>
+<tr><td>599</td><td>悲しいね</td><td>渡辺美里</td></tr>
+<tr><td>600</td><td>愛を語るより口づけをかわそう</td><td>ＷＡＮＤＳ</td></tr>
+<tr><td>601</td><td>赤い風船</td><td>浅田美代子</td></tr>
+<tr><td>602</td><td>今はもう誰も</td><td>アリス</td></tr>
+<tr><td>603</td><td>秋止符</td><td>アリス</td></tr>
+<tr><td>604</td><td>春夏秋冬</td><td>泉谷しげる</td></tr>
+<tr><td>605</td><td>恋人よ</td><td>五輪真弓</td></tr>
+<tr><td>606</td><td>氷の世界</td><td>井上陽水</td></tr>
+<tr><td>607</td><td>心もよう</td><td>井上陽水</td></tr>
+<tr><td>608</td><td>岬めぐり</td><td>ウィークエンド</td></tr>
+<tr><td>609</td><td>夕暮れ時はさびしそう</td><td>N・S・P</td></tr>
+<tr><td>610</td><td>愛を止めないで</td><td>オフコース</td></tr>
+<tr><td>611</td><td>思えば遠くへ来たもんだ</td><td>海援隊</td></tr>
+<tr><td>612</td><td>知床旅情</td><td>加藤登紀子</td></tr>
+<tr><td>613</td><td>ひとり寝の子守唄</td><td>加藤登紀子</td></tr>
+<tr><td>614</td><td>冬が来る前に</td><td>紙ふうせん</td></tr>
+<tr><td>615</td><td>愛はかげろう</td><td>雅夢</td></tr>
+<tr><td>616</td><td>お嫁においで</td><td>加山雄三</td></tr>
+<tr><td>617</td><td>学生街の喫茶店</td><td>ガロ</td></tr>
+<tr><td>618</td><td>きみの朝</td><td>岸田智史</td></tr>
+<tr><td>619</td><td>無縁坂</td><td>グレープ</td></tr>
+<tr><td>620</td><td>想い出まくら</td><td>小坂恭子</td></tr>
+<tr><td>621</td><td>ビューティフル・ネーム</td><td>ゴダイゴ</td></tr>
+<tr><td>622</td><td>WAKE UP</td><td>財津和夫</td></tr>
+<tr><td>623</td><td>世界は二人のために</td><td>佐良直美</td></tr>
+<tr><td>624</td><td>長い髪の少女</td><td>ザ・ゴールデン・カップス</td></tr>
+<tr><td>625</td><td>花の首飾り</td><td>ザ・タイガース</td></tr>
+<tr><td>626</td><td>関白宣言</td><td>さだまさし</td></tr>
+<tr><td>627</td><td>青葉城恋唄</td><td>さとう宗幸</td></tr>
+<tr><td>628</td><td>恋人もいないのに</td><td>シモンズ</td></tr>
+<tr><td>629</td><td>戦争を知らない子供たち</td><td>ジローズ</td></tr>
+<tr><td>630</td><td>結婚するって本当ですか</td><td>ダ・カーポ</td></tr>
+<tr><td>631</td><td>白いギター</td><td>チェリッシュ</td></tr>
+<tr><td>632</td><td>てんとう虫のサンバ</td><td>チェリッシュ</td></tr>
+<tr><td>633</td><td>心の旅</td><td>チューリップ</td></tr>
+<tr><td>634</td><td>魔法の黄色い靴</td><td>チューリップ</td></tr>
+<tr><td>635</td><td>誰もいない海</td><td>トワ・エ・モア</td></tr>
+<tr><td>636</td><td>時代</td><td>中島みゆき</td></tr>
+<tr><td>637</td><td>ふれあい</td><td>中村雅俊</td></tr>
+<tr><td>638</td><td>花嫁</td><td>はしだのりひことクライマックス</td></tr>
+<tr><td>639</td><td>『いちご白書』をもう一度</td><td>バンバン</td></tr>
+<tr><td>640</td><td>白いブランコ</td><td>ビリー・バンバン</td></tr>
+<tr><td>641</td><td>学生時代</td><td>ペギー葉山</td></tr>
+<tr><td>642</td><td>ジョニィへの伝言</td><td>ペドロ＆カプリシャス</td></tr>
+<tr><td>643</td><td>バラが咲いた</td><td>マイク真木</td></tr>
+<tr><td>644</td><td>神田川</td><td>南こうせつとかぐや姫</td></tr>
+<tr><td>645</td><td>さらば涙と言おう</td><td>森田健作</td></tr>
+<tr><td>646</td><td>青春時代</td><td>森田公一とトップ・ギャラン</td></tr>
+<tr><td>647</td><td>今日の日はさようなら</td><td>森山良子</td></tr>
+<tr><td>648</td><td>この広い野原いっぱい</td><td>森山良子</td></tr>
+<tr><td>649</td><td>結婚しようよ</td><td>吉田拓郎</td></tr>
+<tr><td>650</td><td>私は泣いています</td><td>りりィ</td></tr>
+<tr><td>651</td><td>早春賦</td><td>童謡・唱歌</td></tr>
+<tr><td>652</td><td>さくら</td><td>童謡・唱歌</td></tr>
+<tr><td>653</td><td>ちょうちょう</td><td>童謡・唱歌</td></tr>
+<tr><td>654</td><td>花</td><td>童謡・唱歌</td></tr>
+<tr><td>655</td><td>おぼろ月夜</td><td>童謡・唱歌</td></tr>
+<tr><td>656</td><td>荒城の月</td><td>童謡・唱歌</td></tr>
+<tr><td>657</td><td>夏は来ぬ</td><td>童謡・唱歌</td></tr>
+<tr><td>658</td><td>夏の思い出</td><td>童謡・唱歌</td></tr>
+<tr><td>659</td><td>虫のこえ</td><td>童謡・唱歌</td></tr>
+<tr><td>660</td><td>お正月</td><td>童謡・唱歌</td></tr>
+<tr><td>661</td><td>ペチカ</td><td>童謡・唱歌</td></tr>
+<tr><td>662</td><td>うみ</td><td>童謡・唱歌</td></tr>
+<tr><td>663</td><td>おうま</td><td>童謡・唱歌</td></tr>
+<tr><td>664</td><td>かあさんの歌</td><td>童謡・唱歌</td></tr>
+<tr><td>665</td><td>この道</td><td>童謡・唱歌</td></tr>
+<tr><td>666</td><td>手のひらを太陽に</td><td>童謡・唱歌</td></tr>
+<tr><td>667</td><td>浜辺の歌</td><td>童謡・唱歌</td></tr>
+<tr><td>668</td><td>故郷</td><td>童謡・唱歌</td></tr>
+<tr><td>669</td><td>げんこつやまのたぬきさん</td><td>童謡・唱歌</td></tr>
+<tr><td>670</td><td>五木の子守歌（熊本県民謡）</td><td>民謡</td></tr>
+<tr><td>671</td><td>琵琶湖周航の歌</td><td>加藤登紀子</td></tr>
+<tr><td>672</td><td>四季の歌</td><td>芹 洋子</td></tr>
+<tr><td>673</td><td>幸せなら手をたたこう</td><td>坂本 九</td></tr>
+<tr><td>674</td><td>見上げてごらん夜の星を</td><td>坂本 九</td></tr>
+<tr><td>675</td><td>翼をください</td><td>赤い鳥</td></tr>
+<tr><td>676</td><td>アイアイ</td><td>童謡・唱歌</td></tr>
+<tr><td>677</td><td>赤とんぼ</td><td>童謡・唱歌</td></tr>
+<tr><td>678</td><td>一年生になったら</td><td>童謡・唱歌</td></tr>
+<tr><td>679</td><td>いぬのおまわりさん</td><td>童謡・唱歌</td></tr>
+<tr><td>680</td><td>大きな栗の木の下で</td><td>童謡・唱歌</td></tr>
+<tr><td>681</td><td>大きな古時計</td><td>童謡・唱歌</td></tr>
+<tr><td>682</td><td>おべんとうばこのうた</td><td>童謡・唱歌</td></tr>
+<tr><td>683</td><td>おもちゃのチャチャチャ</td><td>童謡・唱歌</td></tr>
+<tr><td>684</td><td>クラリネットをこわしちゃった</td><td>童謡・唱歌</td></tr>
+<tr><td>685</td><td>サッちゃん</td><td>童謡・唱歌</td></tr>
+<tr><td>686</td><td>ぞうさん</td><td>童謡・唱歌</td></tr>
+<tr><td>687</td><td>ちいさい秋みつけた</td><td>童謡・唱歌</td></tr>
+<tr><td>688</td><td>チューリップ</td><td>童謡・唱歌</td></tr>
+<tr><td>689</td><td>ドレミのうた</td><td>童謡・唱歌</td></tr>
+<tr><td>690</td><td>どんぐりころころ</td><td>童謡・唱歌</td></tr>
+<tr><td>691</td><td>とんぼのめがね</td><td>童謡・唱歌</td></tr>
+<tr><td>692</td><td>ぶんぶんぶん</td><td>童謡・唱歌</td></tr>
+<tr><td>693</td><td>めだかのがっこう</td><td>童謡・唱歌</td></tr>
+<tr><td>694</td><td>メリーさんのひつじ</td><td>童謡・唱歌</td></tr>
+<tr><td>695</td><td>もりのくまさん</td><td>童謡・唱歌</td></tr>
+<tr><td>696</td><td>やぎさんゆうびん</td><td>童謡・唱歌</td></tr>
+<tr><td>697</td><td>やまぐちさんちのツトムくん</td><td>童謡・唱歌</td></tr>
+<tr><td>698</td><td>山の音楽家</td><td>童謡・唱歌</td></tr>
+<tr><td>699</td><td>夕やけ小やけ</td><td>童謡・唱歌</td></tr>
+<tr><td>700</td><td>パンダ うさぎ コアラ</td><td>速水けんたろう・茂森あゆみ</td>
+<tr><td>001</td><td>sd  あゝ無情</td><td>アン・ルイス</td></tr>
+<tr><td>002</td><td>sd  I am a father</td><td>浜田省吾</td></tr>
+<tr><td>003</td><td>sd  愛唄</td><td>GReeeeN</td></tr>
+<tr><td>004</td><td>sd  会いたい</td><td>沢田知可子</td></tr>
+<tr><td>005</td><td>sd  愛のうた</td><td>倖田來未</td></tr>
+<tr><td>006</td><td>sd  愛の言霊（ことだま）</td><td>サザンオールスターズ</td></tr>
+<tr><td>007</td><td>sd  愛のままで…</td><td>秋元順子</td></tr>
+<tr><td>008</td><td>sd  I was born to love you</td><td>クイーン</td></tr>
+<tr><td>009</td><td>sd  蒼く優しく</td><td>コブクロ</td></tr>
+<tr><td>010</td><td>sd  アゲハ蝶</td><td>ポルノグラフィティ</td></tr>
+<tr><td>011</td><td>sd  あなた</td><td>HY</td></tr>
+<tr><td>012</td><td>sd  あなたとならば</td><td>O's</td></tr>
+<tr><td>013</td><td>sd  あの鐘を鳴らすのはあなた</td><td>和田アキ子</td></tr>
+<tr><td>014</td><td>sd  ア・ホール・ニュー・ワールド</td><td>ピーボ・ブライソン</td></tr>
+<tr><td>015</td><td>sd  雨上がりにもう一度</td><td>サザンオールスターズ</td></tr>
+<tr><td>016</td><td>sd  ありがとう</td><td>SMAP</td></tr>
+<tr><td>017</td><td>sd  ICHIZU</td><td>やしきたかじん</td></tr>
+<tr><td>018</td><td>sd  異邦人</td><td>久保田早紀</td></tr>
+<tr><td>019</td><td>sd  Winter Love</td><td>BoA</td></tr>
+<tr><td>020</td><td>sd  運命のヒト</td><td>EXILE</td></tr>
+<tr><td>021</td><td>sd  栄光の架橋</td><td>ゆず</td></tr>
+<tr><td>022</td><td>sd  AM11:00</td><td>HY</td></tr>
+<tr><td>023</td><td>sd  ENDLESS STORY</td><td>REIRA starring YUNA ITO</td></tr>
+<tr><td>024</td><td>sd  Only Human</td><td>K</td></tr>
+<tr><td>025</td><td>sd  風</td><td>上戸彩</td></tr>
+<tr><td>026</td><td>sd  奏（かなで）</td><td>スキマスイッチ</td></tr>
+<tr><td>027</td><td>sd  ガラナ</td><td>スキマスイッチ</td></tr>
+<tr><td>028</td><td>sd  キセキ</td><td>GReeeeN</td></tr>
+<tr><td>029</td><td>sd  キューティーハニー</td><td>テレビ主題歌（前川陽子）</td></tr>
+<tr><td>030</td><td>sd  グッド・バイ・マイ・ラブ</td><td>アン・ルイス</td></tr>
+<tr><td>031</td><td>sd  結婚闘魂行進曲「マブダチ」</td><td>氣志団</td></tr>
+<tr><td>032</td><td>sd  サイドシートの影</td><td>浜田省吾</td></tr>
+<tr><td>033</td><td>sd  3月9日</td><td>レミオロメン</td></tr>
+<tr><td>034</td><td>sd  366日</td><td>HY</td></tr>
+<tr><td>035</td><td>sd  シャボン</td><td>サザンオールスターズ</td></tr>
+<tr><td>036</td><td>sd  純恋歌</td><td>湘南乃風</td></tr>
+<tr><td>037</td><td>sd  白い雲のように</td><td>猿岩石</td></tr>
+<tr><td>038</td><td>sd  シングルベッド</td><td>シャ乱Q</td></tr>
+<tr><td>039</td><td>sd  好きな人</td><td>Kiroro</td></tr>
+<tr><td>040</td><td>sd  SCREAM</td><td>GLAY×EXILE</td></tr>
+<tr><td>041</td><td>sd  Story</td><td>AI</td></tr>
+<tr><td>042</td><td>sd  卒業の日</td><td>サスケ</td></tr>
+<tr><td>043</td><td>sd  Song for...</td><td>HY</td></tr>
+<tr><td>044</td><td>sd  大っきらい でもありがと</td><td>青山テルマ</td></tr>
+<tr><td>045</td><td>sd  タッチ</td><td>岩崎良美</td></tr>
+<tr><td>046</td><td>sd  旅立ちの唄</td><td>Mr.Children</td></tr>
+<tr><td>047</td><td>sd  ダンシング・クイーン</td><td>アバ（ABBA）</td></tr>
+<tr><td>048</td><td>sd  Ti Amo</td><td>EXILE</td></tr>
+<tr><td>049</td><td>sd  天体観測</td><td>BUMP OF CHICKEN</td></tr>
+<tr><td>050</td><td>sd  東京</td><td>やしきたかじん</td></tr>
+<tr><td>051</td><td>sd  等身大のラブソング</td><td>Aqua Timez</td></tr>
+<tr><td>052</td><td>sd  永遠にともに</td><td>コブクロ</td></tr>
+<tr><td>053</td><td>sd  NAO</td><td>HY</td></tr>
+<tr><td>054</td><td>sd  ナオミの夢（ANI HOLEM）</td><td>ヘドバとダビデ</td></tr>
+<tr><td>055</td><td>sd  なごり雪</td><td>イルカ</td></tr>
+<tr><td>056</td><td>sd  ノー・マイ・カー・ディ</td><td>大安BOYS</td></tr>
+<tr><td>057</td><td>sd  はじめてのチュウ</td><td>テレビ主題歌（あんしんパパ）</td></tr>
+<tr><td>058</td><td>sd  ハナミズキ</td><td>一青窈</td></tr>
+<tr><td>059</td><td>sd  ヴィーナス Venus</td><td>ショッキング・ブルー</td></tr>
+<tr><td>060</td><td>sd  PRIDE</td><td>今井美樹</td></tr>
+<tr><td>061</td><td>sd  プラネタリウム</td><td>BUMP OF CHICKEN</td></tr>
+<tr><td>062</td><td>sd  古い日記</td><td>和田アキ子</td></tr>
+<tr><td>063</td><td>sd  ポケモン言えるかな？</td><td>イマクニ？</td></tr>
+<tr><td>064</td><td>sd  三日月</td><td>絢香</td></tr>
+<tr><td>065</td><td>sd  miss you</td><td>コブクロ</td></tr>
+<tr><td>066</td><td>sd  Mugen</td><td>ポルノグラフィティ</td></tr>
+<tr><td>067</td><td>sd  メリッサ</td><td>ポルノグラフィティ</td></tr>
+<tr><td>068</td><td>sd  もう君以外愛せない</td><td>KinKi Kids</td></tr>
+<tr><td>069</td><td>sd  もう少し</td><td>Kiroro</td></tr>
+<tr><td>070</td><td>sd  夢のうた</td><td>倖田來未</td></tr>
+<tr><td>071</td><td>sd  YUME日和</td><td>島谷ひとみ</td></tr>
+<tr><td>072</td><td>sd  LIFE</td><td>中島美嘉</td></tr>
+<tr><td>073</td><td>sd  Lifetime Respect</td><td>三木道三</td></tr>
+<tr><td>074</td><td>sd  Lover Again</td><td>EXILE</td></tr>
+<tr><td>075</td><td>sd  ラムのラブソング</td><td>テレビ主題歌（松谷祐子）</td></tr>
+<tr><td>076</td><td>sd  LA-LA-LA</td><td>研ナオコ</td></tr>
+<tr><td>077</td><td>sd  ロード</td><td>THE 虎舞竜</td></tr>
+<tr><td>078</td><td>sd  私はピアノ</td><td>高田みづえ</td></tr>
+</tr>
+      </tbody>
+    </table>
+    <!-- 検索結果が0件の時のメッセージ受け皿 -->
+    <div id="noResultMsg" class="no-result" style="display: none;">該当するデータが見つかりません。</div>
+  </div>
+
+  <!-- ③ 制御用JavaScript -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const table = document.getElementById('targetTable');
+    const tbody = table.querySelector('tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr')); // 全生データ
+    const noResultMsg = document.getElementById('noResultMsg');
+
+    // --------------------------------------------------
+    // allRows の中身を「検索用テキスト」付きのオブジェクト配列にする
+    // --------------------------------------------------
+    // ※ 画面ロード時、またはデータ読み込み完了時に1度だけ実行してください
+    const cachedRows = allRows.map(row => {
+      const cells = Array.from(row.querySelectorAll('td'));
+      const rawText = (cells[1]?.textContent || '') + ' ' + (cells[2]?.textContent || '');
+
+      return {
+        element: row,                      // 元の tr 要素
+        searchText: normalizeText(rawText) // あらかじめ正規化した検索用テキスト
+      };
+    });
+
+    // UI要素の取得
+    const searchInput = document.getElementById('searchKeyword');
+    const pageSelect = document.getElementById('pageSelect');
+    const radios = document.querySelectorAll('input[name="perPage"]');
+    const btnFirst = document.getElementById('btnFirst');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnLast = document.getElementById('btnLast');
+
+    let currentPage = 1;
+    let rowsPerPage = 25;
+    let filteredRows = [...allRows]; // 検索で絞り込まれた行のリスト（初期は全行）
+
+    // --------------------------------------------------
+    // 【軽量化】デバウンス（タイピング中の無駄な実行を抑える）用のタイマー
+    // --------------------------------------------------
+    let searchTimeout;
+
+    // 検索キーワード入力時のイベント
+    searchInput.addEventListener('input', (e) => {
+      // タイピングするたびにタイマーをリセット
+      clearTimeout(searchTimeout);
+
+      // 200ミリ秒（0.2秒）の間、次の入力がなければ検索を実行
+      searchTimeout = setTimeout(() => {
+        const keyword = normalizeText(e.target.value.trim());
+
+        if (keyword === '') {
+          filteredRows = [...allRows];
+        } else {
+          // 事前に計算済みの searchText を比較するだけなので爆速
+          const filteredObjects = cachedRows.filter(item => {
+            return item.searchText.includes(keyword);
+          });
+
+          // 抽出されたオブジェクトから、元の tr 要素の配列を復元
+          filteredRows = filteredObjects.map(item => item.element);
+        }
+
+        currentPage = 1;
+        updateTable();
+      }, 200); // 待ち時間は 200ms（お好みで 150～300ms に調整してください）
+    });
+
+    function updateTable() {
+      const totalRows = filteredRows.length;
+      const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+
+      // 検索結果がゼロの場合の処理
+      if (totalRows === 0) {
+        allRows.forEach(row => row.style.display = 'none');
+        noResultMsg.style.display = 'block';
+        pageSelect.innerHTML = '<option value="1">0 / 0 ページ</option>';
+        pageSelect.disabled = true;
+        btnFirst.disabled = btnPrev.disabled = btnNext.disabled = btnLast.disabled = true;
+        return;
+      } else {
+        noResultMsg.style.display = 'none';
+        pageSelect.disabled = false;
+      }
+
+      // ページ数の範囲ガード
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      // 1. すべての行を一旦非表示にする
+      allRows.forEach(row => row.style.display = 'none');
+
+      // 2. 絞り込まれたデータの中で、現在のページのデータだけを表示して着色
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      
+      let visibleCount = 0;
+      filteredRows.forEach((row, index) => {
+        if (index >= startIndex && index < endIndex) {
+          row.style.display = '';
+          // ゼブラパターンの着色
+          row.style.backgroundColor = (visibleCount % 2 === 0) ? '#ffffff' : '#f7f9fa';
+          visibleCount++;
+        }
+      });
+
+      // 3. ドロップダウン（選択肢）を再構築
+      pageSelect.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${i} / ${totalPages} ページ`;
+        if (i === currentPage) {
+          option.selected = true;
+        }
+        pageSelect.appendChild(option);
+      }
+
+      // 4. 矢印ボタンの有効/無効コントロール
+      btnFirst.disabled = (currentPage === 1);
+      btnPrev.disabled = (currentPage === 1);
+      btnNext.disabled = (currentPage === totalPages);
+      btnLast.disabled = (currentPage === totalPages);
+    }
+
+    // --- 全角半角・かなカナの揺れを吸収する正規化関数 ---
+    function toHiragana(str) {
+      return str.replace(/[\u30a1-\u30f6]/g, match => {
+        return String.fromCharCode(match.charCodeAt(0) - 0x60);
+      });
+    }
+    function normalizeText(str) {
+      if (!str) return '';
+      // NFKC正規化、小文字化、ひらがな化を行う
+      return toHiragana(str.normalize('NFKC').toLowerCase());
+    }
+
+    // 検索キーワード入力時のイベント（一文字入力するごとにリアルタイムで絞り込み）
+    searchInput.addEventListener('input', (e) => {
+      // 入力されたキーワードを正規化（trimも含む）
+      const keyword = normalizeText(e.target.value.trim());
+
+      if (keyword === '') {
+        // キーワードが空なら全行を対象にする
+        filteredRows = [...allRows];
+      } else {
+        // キーワードが含まれる行だけを抽出（曲名、歌手名の両方を検索対象に）
+        filteredRows = allRows.filter(row => {
+          const cells = Array.from(row.querySelectorAll('td'));
+          // 2列目と3列目のテキストを結合
+          const rawText = (cells[1]?.textContent || '') + ' ' + (cells[2]?.textContent || '');
+          // 抽出対象のテキストも同様に正規化して比較する
+          const textToSearch = normalizeText(rawText);
+          return textToSearch.includes(keyword);
+        });
+      }
+
+      currentPage = 1; // 検索時は必ず1ページ目に戻す
+      updateTable();
+    });
+
+    // イベントリスナー：ラジオボタン（表示件数）
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        rowsPerPage = parseInt(e.target.value, 10);
+        currentPage = 1;
+        updateTable();
+      });
+    });
+
+    // イベントリスナー：ドロップダウン（ページ直接指定）
+    pageSelect.addEventListener('change', (e) => {
+      currentPage = parseInt(e.target.value, 10);
+      updateTable();
+    });
+
+    // イベントリスナー：各矢印ボタンの動作
+    btnFirst.addEventListener('click', () => {
+      currentPage = 1;
+      updateTable();
+    });
+
+    btnPrev.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        updateTable();
+      }
+    });
+
+    btnNext.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        updateTable();
+      }
+    });
+
+    btnLast.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+      currentPage = totalPages;
+      updateTable();
+    });
+
+    // 初回実行
+    updateTable();
+  });
+  </script>
