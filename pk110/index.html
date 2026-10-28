@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Z-PK110GT 曲目リスト</title>
+
+  <style>
+    /* 全体の基本設定 */
+    body {
+      font-family: sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 15px;
+      padding: 0;
+    }
+
+    /* ① コントロールUI全体のコンテナ */
+    .pagination-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 15px;
+      background-color: #ffd700;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+
+    /* 各操作行のレイアウト */
+    .pagination-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      font-size: 15px;
+    }
+    .pagination-row .label {
+      font-weight: bold;
+      min-width: 80px;
+    }
+
+    /* 検索キーワード入力欄のスタイル */
+    .search-box input {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      width: 100%;
+      max-width: 300px; /* PCでの最大幅 */
+      box-sizing: border-box;
+    }
+
+    /* ラジオボタン */
+    .limit-selector label {
+      margin-right: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* ドロップダウン */
+    .page-selector select {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    /* ページ移動ボタン */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .page-btn {
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: bold;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .page-btn:hover {
+      background-color: #f0f0f0;
+      border-color: #999;
+    }
+    .page-btn:disabled {
+      background-color: #eee;
+      border-color: #ddd;
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    /* 検索結果がゼロの時のメッセージ */
+    .no-result {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-weight: bold;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+
+    /* ② スマホ対応：横スクロールを許可するコンテナ */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+
+    /* テーブル本体のスタイル */
+    #targetTable {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed; 
+    }
+    #targetTable th, #targetTable td {
+      border: 1px solid #ddd;
+      padding: 12px 10px;
+      text-align: left;
+      vertical-align: middle;
+      word-break: break-all;
+      overflow-wrap: break-word;
+    }
+    #targetTable th {
+      background-color: #ececec;
+      font-weight: bold;
+    }
+
+    /* ーーー 各列の幅・フォント調整 ーーー */
+    #targetTable th:nth-child(1),
+    #targetTable td:nth-child(1) {
+      width: 60px;
+      text-align: center;
+    }
+    #targetTable td:nth-child(1) {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    #targetTable th:nth-child(2),
+    #targetTable td:nth-child(2) {
+      width: 230px;
+    }
+    #targetTable th:nth-child(3),
+    #targetTable td:nth-child(3) {
+      width: 230px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ① コントロールUI -->
+  <div class="pagination-container">
+    <!-- 最上段：キーワード検索欄 -->
+    <div class="pagination-row search-box">
+      <span class="label">絞り込み：</span>
+      <input type="text" id="searchKeyword" placeholder="曲名や歌手名を入力...">
+    </div>
+
+    <!-- 中段：件数切り替え -->
+    <div class="pagination-row limit-selector">
+      <span class="label">表示件数：</span>
+      <label><input type="radio" name="perPage" value="10"> 10件</label>
+      <label><input type="radio" name="perPage" value="25" checked> 25件</label>
+      <label><input type="radio" name="perPage" value="50"> 50件</label>
+    </div>
+
+    <!-- 下段：ページ移動（ドロップダウン ＋ 矢印ボタン） -->
+    <div class="pagination-row">
+      <div class="page-selector">
+        <span class="label">ページ指定：</span>
+        <select id="pageSelect">
+          <!-- JSで自動生成 -->
+        </select>
+      </div>
+      
+      <div class="btn-group">
+        <button type="button" class="page-btn" id="btnFirst" title="最初のページへ">|&lt;</button>
+        <button type="button" class="page-btn" id="btnPrev" title="前のページへ">&lt;</button>
+        <button type="button" class="page-btn" id="btnNext" title="次のページへ">&gt;</button>
+        <button type="button" class="page-btn" id="btnLast" title="最後のページへ">&gt;|</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② テーブル本体（レスポンシブコンテナ） -->
+  <div class="table-responsive">
+    <table id="targetTable">
+      <thead>
+        <tr>
+          <th>曲番号</th>
+          <th>曲名</th>
+          <th>歌手名</th>
+        </tr>
+      </thead>
+      <tbody>
+<tr><td>40002</td><td>愛して愛して愛しちゃったのよ</td><td>田代　美代子＆マヒナスターズ</td></tr>
+<tr><td>40003</td><td>会いたい</td><td>沢田　知可子</td></tr>
+<tr><td>40005</td><td>I LOVE YOU</td><td>尾崎　豊</td></tr>
+<tr><td>40006</td><td>青葉城恋唄</td><td>さとう　宗幸</td></tr>
+<tr><td>40007</td><td>赤いスイートピー</td><td>松田　聖子</td></tr>
+<tr><td>40009</td><td>あざみの歌</td><td>伊藤　久男</td></tr>
+<tr><td>40010</td><td>あづま男と浪花のおんな</td><td>北島　三郎＆中村　美律子</td></tr>
+<tr><td>40017</td><td>安奈</td><td>甲斐バンド</td></tr>
+<tr><td>40018</td><td>いい日旅立ち</td><td>山口　百恵</td></tr>
+<tr><td>40020</td><td>居酒屋</td><td>木の実　ナナ＆五木　ひろし</td></tr>
+<tr><td>40024</td><td>異邦人</td><td>久保田　早紀</td></tr>
+<tr><td>40025</td><td>今は幸せかい</td><td>佐川　満男</td></tr>
+<tr><td>40026</td><td>祝い酒</td><td>坂本　冬美</td></tr>
+<tr><td>40028</td><td>石見路(いわみじ)ひとり</td><td>永井　裕子</td></tr>
+<tr><td>40029</td><td>浮世草</td><td>市川　由紀乃</td></tr>
+<tr><td>40034</td><td>M</td><td>PRINCESS PRINCESS</td></tr>
+<tr><td>40035</td><td>襟裳岬</td><td>森　進一</td></tr>
+<tr><td>40037</td><td>大空と大地の中で</td><td>松山　千春</td></tr>
+<tr><td>40040</td><td>おっちゃんの一番長い夜</td><td>中村　泰士</td></tr>
+<tr><td>40042</td><td>男と女のラブゲーム</td><td>葵　司朗＆日野　美歌</td></tr>
+<tr><td>40046</td><td>おふくろさん</td><td>森　進一</td></tr>
+<tr><td>40049</td><td>オリビアを聴きながら</td><td>杏里</td></tr>
+<tr><td>40053</td><td>風港</td><td>大川　栄策</td></tr>
+<tr><td>40056</td><td>カナダからの手紙</td><td>平尾　昌晃＆畑中　葉子</td></tr>
+<tr><td>40059</td><td>神田川</td><td>かぐや姫</td></tr>
+<tr><td>40060</td><td>乾杯</td><td>長渕　剛</td></tr>
+<tr><td>40061</td><td>北空港</td><td>浜　圭介＆桂　銀淑</td></tr>
+<tr><td>40067</td><td>君といつまでも</td><td>加山　雄三</td></tr>
+<tr><td>40069</td><td>クリスマス・イブ</td><td>山下　達郎</td></tr>
+<tr><td>40071</td><td>恋瀬川</td><td>中村　美律子</td></tr>
+<tr><td>40072</td><td>恋におちて</td><td>小林　明子</td></tr>
+<tr><td>40073</td><td>恋のバカンス</td><td>ザ・ピーナッツ</td></tr>
+<tr><td>40079</td><td>心の旅</td><td>チューリップ</td></tr>
+<tr><td>40080</td><td>秋桜 (コスモス)</td><td>山口　百恵</td></tr>
+<tr><td>40082</td><td>このまま君だけを奪い去りたい</td><td>DEEN</td></tr>
+<tr><td>40085</td><td>今夜は離さない</td><td>橋　幸夫＆安倍　葎子</td></tr>
+<tr><td>40091</td><td>さよなら</td><td>オフコース</td></tr>
+<tr><td>40092</td><td>サントワマミー</td><td>越路　吹雪</td></tr>
+<tr><td>40093</td><td>3年目の浮気</td><td>ヒロシ＆キーボー</td></tr>
+<tr><td>40095</td><td>シクラメンのかほり</td><td>布施　明</td></tr>
+<tr><td>40099</td><td>少年時代</td><td>井上　陽水</td></tr>
+<tr><td>40100</td><td>ジョニイへの伝言</td><td>ペドロ＆カプリシャス</td></tr>
+<tr><td>40102</td><td>知床旅情</td><td>加藤　登紀子</td></tr>
+<tr><td>40103</td><td>白い色は恋人の色</td><td>ベッツィ＆クリス</td></tr>
+<tr><td>40107</td><td>昴</td><td>谷村　新司</td></tr>
+<tr><td>40109</td><td>世界中の誰よりきっと ＜PartⅡ＞</td><td>中山　美穂＆WANDS</td></tr>
+<tr><td>40110</td><td>世界に一つだけの花 (シングル・ヴァージョン)</td><td>SMAP</td></tr>
+<tr><td>40111</td><td>瀬戸の花嫁</td><td>小柳　ルミ子</td></tr>
+<tr><td>40112</td><td>千の風になって</td><td>秋川　雅史</td></tr>
+<tr><td>40115</td><td>そして…めぐり逢い</td><td>五木　ひろし</td></tr>
+<tr><td>40116</td><td>卒業写真</td><td>松任谷　由実</td></tr>
+<tr><td>40120</td><td>チェリー</td><td>スピッツ</td></tr>
+<tr><td>40122</td><td>チャンピオン</td><td>アリス</td></tr>
+<tr><td>40123</td><td>TSUNAMI</td><td>サザンオールスターズ</td></tr>
+<tr><td>40127</td><td>TOMORROW</td><td>岡本　真夜</td></tr>
+<tr><td>40128</td><td>TOMORROW NEVER KNOWS</td><td>Mr.Children</td></tr>
+<tr><td>40129</td><td>TRUE LOVE</td><td>藤井　フミヤ</td></tr>
+<tr><td>40132</td><td>永遠(とわ)にともに</td><td>コブクロ</td></tr>
+<tr><td>40133</td><td>飛んでイスタンブール</td><td>庄野　真代</td></tr>
+<tr><td>40134</td><td>どんなときも</td><td>槇原　敬之</td></tr>
+<tr><td>40138</td><td>何も言えなくて…夏</td><td>J-WALK</td></tr>
+<tr><td>40141</td><td>南国土佐を後にして</td><td>ペギー葉山</td></tr>
+<tr><td>40154</td><td>二人でお酒を</td><td>梓　みちよ</td></tr>
+<tr><td>40155</td><td>ふたりの大阪</td><td>都　はるみ＆宮崎　雅</td></tr>
+<tr><td>40156</td><td>ふたりのラブソング</td><td>五木　ひろし＆都　はるみ</td></tr>
+<tr><td>40157</td><td>舟</td><td>伍代　夏子</td></tr>
+<tr><td>40158</td><td>fragile</td><td>Every Little Thing</td></tr>
+<tr><td>40160</td><td>Flavor Of Life</td><td>宇多田　ヒカル</td></tr>
+<tr><td>40161</td><td>フレンズ</td><td>レベッカ</td></tr>
+<tr><td>40163</td><td>紅花の宿</td><td>水田　竜子</td></tr>
+<tr><td>40170</td><td>MY REVOLUTION</td><td>渡辺　美里</td></tr>
+<tr><td>40171</td><td>負けないで</td><td>ZARD</td></tr>
+<tr><td>40172</td><td>また逢う日まで</td><td>尾崎　紀世彦</td></tr>
+<tr><td>40173</td><td>まちぶせ</td><td>石川　ひとみ</td></tr>
+<tr><td>40174</td><td>マツケンサンバⅡ</td><td>松平　健</td></tr>
+<tr><td>40176</td><td>待つわ</td><td>あみん</td></tr>
+<tr><td>40177</td><td>見上げてごらん夜の星を</td><td>坂本　九</td></tr>
+<tr><td>40178</td><td>岬めぐり</td><td>ウィークエンド</td></tr>
+<tr><td>40180</td><td>みちづれ</td><td>渡　哲也　(牧村　三枝子)</td></tr>
+<tr><td>40182</td><td>未来へ</td><td>Kiroro</td></tr>
+<tr><td>40185</td><td>麦畑</td><td>オヨネーズ</td></tr>
+<tr><td>40187</td><td>むらさき日記</td><td>服部　浩子</td></tr>
+<tr><td>40188</td><td>名月赤城山</td><td>東海林　太郎</td></tr>
+<tr><td>40189</td><td>夫婦ちゃんりん</td><td>川中　美幸</td></tr>
+<tr><td>40191</td><td>もうひとつの土曜日</td><td>浜田　省吾</td></tr>
+<tr><td>40193</td><td>木綿のハンカチーフ</td><td>太田　裕美</td></tr>
+<tr><td>40194</td><td>桃色吐息</td><td>高橋　真梨子</td></tr>
+<tr><td>40195</td><td>もらい泣き</td><td>一青　窈</td></tr>
+<tr><td>40196</td><td>矢切の渡し</td><td>細川　たかし</td></tr>
+<tr><td>40199</td><td>雪国～駒子 その愛～</td><td>坂本　冬美</td></tr>
+<tr><td>40203</td><td>よこはま たそがれ</td><td>五木　ひろし</td></tr>
+<tr><td>40204</td><td>与作</td><td>北島　三郎</td></tr>
+<tr><td>40205</td><td>夜のめぐり逢い</td><td>石原　裕次郎＆八代　亜紀</td></tr>
+<tr><td>40206</td><td>LOVE LOVE LOVE</td><td>DREAMS COME TRUE</td></tr>
+<tr><td>40207</td><td>ロード</td><td>THE 虎舞竜</td></tr>
+<tr><td>40208</td><td>Rolling star</td><td>YUI</td></tr>
+<tr><td>40209</td><td>六本木心中</td><td>アン・ルイス</td></tr>
+<tr><td>40210</td><td>ロンリー・チャップリン</td><td>鈴木　聖美 WITH RATS＆STAR</td></tr>
+<tr><td>40211</td><td>ワインレッドの心</td><td>安全地帯</td></tr>
+<tr><td>40213</td><td>別れても好きな人</td><td>ロス・インディオス＆シルビア</td></tr>
+<tr><td>40660</td><td>フライングゲット</td><td>AKB48</td></tr>
+<tr><td>40681</td><td>櫻</td><td>氷川　きよし</td></tr>
+<tr><td>40687</td><td>ひとり長良川</td><td>水森　かおり</td></tr>
+<tr><td>40689</td><td>愛、テキサス</td><td>山下　智久</td></tr>
+<tr><td>40696</td><td>真夏のSounds good !</td><td>AKB48</td></tr>
+<tr><td>40715</td><td>やじるしになって!</td><td>松本　梨香</td></tr>
+<tr><td>42001</td><td>ああ人生に涙あり</td><td>里見　浩太朗＆横内　正</td></tr>
+<tr><td>42002</td><td>愛燦燦</td><td>美空　ひばり</td></tr>
+<tr><td>42003</td><td>哀愁のカサブランカ</td><td>郷　ひろみ</td></tr>
+<tr><td>42004</td><td>愛人</td><td>テレサ・テン</td></tr>
+<tr><td>42005</td><td>逢いたくて逢いたくて</td><td>園　まり</td></tr>
+<tr><td>42006</td><td>愛のうた</td><td>倖田　來未</td></tr>
+<tr><td>42007</td><td>愛の水中花</td><td>松坂　慶子</td></tr>
+<tr><td>42008</td><td>愛のメモリー</td><td>松崎　しげる</td></tr>
+<tr><td>42009</td><td>アカシアの雨がやむとき</td><td>西田　佐知子</td></tr>
+<tr><td>42010</td><td>安芸の宮島</td><td>水森　かおり</td></tr>
+<tr><td>42011</td><td>アケミという名で十八で</td><td>千　昌夫</td></tr>
+<tr><td>42012</td><td>安里屋ユンタ</td><td>沖縄曲</td></tr>
+<tr><td>42013</td><td>あの鐘を鳴らすのはあなた</td><td>和田　アキ子</td></tr>
+<tr><td>42014</td><td>雨がやんだら</td><td>朝丘　雪路</td></tr>
+<tr><td>42015</td><td>雨酒場</td><td>香西　かおり</td></tr>
+<tr><td>42016</td><td>雨の慕情</td><td>八代　亜紀</td></tr>
+<tr><td>42017</td><td>雨の御堂筋</td><td>欧陽　菲菲</td></tr>
+<tr><td>42018</td><td>イエスタディ（YESTERDAY）</td><td>ビートルズ</td></tr>
+<tr><td>42019</td><td>石狩挽歌</td><td>北原　ミレイ</td></tr>
+<tr><td>42020</td><td>一度だけなら</td><td>野村　将希（野村　真樹）</td></tr>
+<tr><td>42021</td><td>いっそセレナーデ</td><td>井上　陽水</td></tr>
+<tr><td>42022</td><td>うそ</td><td>中条　きよし</td></tr>
+<tr><td>42023</td><td>噂の女</td><td>内山田　洋とクール・ファイブ</td></tr>
+<tr><td>42024</td><td>えいさ</td><td>ジェロ</td></tr>
+<tr><td>42025</td><td>M</td><td>浜崎　あゆみ</td></tr>
+<tr><td>42026</td><td>演歌みち</td><td>松原　のぶえ</td></tr>
+<tr><td>42027</td><td>大阪ラプソディー</td><td>海原　千里・万里</td></tr>
+<tr><td>42028</td><td>おかあさん</td><td>森　昌子</td></tr>
+<tr><td>42029</td><td>贈る言葉</td><td>海援隊</td></tr>
+<tr><td>42030</td><td>おどるポンポコリン</td><td>B.B.クイーンズ</td></tr>
+<tr><td>42031</td><td>お久しぶりね</td><td>小柳　ルミ子</td></tr>
+<tr><td>42032</td><td>おもいで酒</td><td>小林　幸子</td></tr>
+<tr><td>42033</td><td>想い出の渚</td><td>ザ・ワイルド・ワンズ</td></tr>
+<tr><td>42034</td><td>想いで迷子</td><td>チョー・ヨンピル</td></tr>
+<tr><td>42035</td><td>思えば遠くへ来たもんだ</td><td>海援隊</td></tr>
+<tr><td>42036</td><td>おゆき</td><td>内藤　国雄</td></tr>
+<tr><td>42037</td><td>お嫁サンバ</td><td>郷　ひろみ</td></tr>
+<tr><td>42038</td><td>俺ら東京さ行ぐだ</td><td>吉　幾三</td></tr>
+<tr><td>42039</td><td>女の旅路</td><td>中村　美律子</td></tr>
+<tr><td>42040</td><td>女のみち</td><td>宮　史郎とぴんからトリオ</td></tr>
+<tr><td>42041</td><td>海賊戦隊ゴーカイジャー</td><td>松原　剛志(Project.R)</td></tr>
+<tr><td>42042</td><td>学園天国</td><td>小泉　今日子</td></tr>
+<tr><td>42043</td><td>学生時代</td><td>ペギー葉山</td></tr>
+<tr><td>42044</td><td>風の宿</td><td>水田　竜子</td></tr>
+<tr><td>42045</td><td>喝采</td><td>ちあき　なおみ</td></tr>
+<tr><td>42046</td><td>勝手にしやがれ</td><td>沢田　研二</td></tr>
+<tr><td>42047</td><td>かもめはかもめ</td><td>研　ナオコ</td></tr>
+<tr><td>42048</td><td>キセキ</td><td>GReeeeN</td></tr>
+<tr><td>42049</td><td>北酒場</td><td>細川　たかし</td></tr>
+<tr><td>42050</td><td>北の宿から</td><td>都　はるみ</td></tr>
+<tr><td>42051</td><td>希望</td><td>岸　洋子</td></tr>
+<tr><td>42052</td><td>気まぐれロマンティック</td><td>いきものがかり</td></tr>
+<tr><td>42053</td><td>君こそわが命</td><td>水原　弘</td></tr>
+<tr><td>42054</td><td>君待てども</td><td>平野　愛子</td></tr>
+<tr><td>42055</td><td>今日でお別れ</td><td>菅原　洋一</td></tr>
+<tr><td>42056</td><td>京都から博多まで</td><td>藤　圭子</td></tr>
+<tr><td>42057</td><td>京都の恋</td><td>渚　ゆう子</td></tr>
+<tr><td>42058</td><td>空港</td><td>テレサ・テン</td></tr>
+<tr><td>42059</td><td>九段の母</td><td>二葉　百合子</td></tr>
+<tr><td>42060</td><td>Get Along Together ～愛を贈りたいから～</td><td>山根　康広</td></tr>
+<tr><td>42061</td><td>元気を出して</td><td>竹内　まりや</td></tr>
+<tr><td>42062</td><td>恋人よ</td><td>五輪　真弓</td></tr>
+<tr><td>42063</td><td>コーヒー・ルンバ</td><td>西田　佐知子</td></tr>
+<tr><td>42064</td><td>心のこり</td><td>細川　たかし</td></tr>
+<tr><td>42065</td><td>五番街のマリーへ</td><td>ペドロ＆カプリシャス</td></tr>
+<tr><td>42066</td><td>酒と泪と男と女</td><td>河島　英五</td></tr>
+<tr><td>42067</td><td>SACHIKO</td><td>ばんば　ひろふみ</td></tr>
+<tr><td>42068</td><td>さらば恋人</td><td>堺　正章</td></tr>
+<tr><td>42069</td><td>Gee</td><td>少女時代</td></tr>
+<tr><td>42070</td><td>下北漁港</td><td>鳥羽　一郎</td></tr>
+<tr><td>42071</td><td>羞恥心</td><td>羞恥心</td></tr>
+<tr><td>42072</td><td>庄内平野 風の中</td><td>水森　かおり</td></tr>
+<tr><td>42073</td><td>SWEET MEMORIES</td><td>松田　聖子</td></tr>
+<tr><td>42074</td><td>すきま風</td><td>杉　良太郎</td></tr>
+<tr><td>42075</td><td>青春時代</td><td>森田　公一とトップギャラン</td></tr>
+<tr><td>42076</td><td>せんせい</td><td>森　昌子</td></tr>
+<tr><td>42077</td><td>そっとおやすみ</td><td>布施　明</td></tr>
+<tr><td>42078</td><td>そばにいるね</td><td>青山　テルマ feat. SoulJa</td></tr>
+<tr><td>42079</td><td>宙船</td><td>TOKIO</td></tr>
+<tr><td>42080</td><td>そんな女のひとりごと</td><td>増位山　太志郎</td></tr>
+<tr><td>42081</td><td>旅立ち</td><td>松山　千春</td></tr>
+<tr><td>42082</td><td>DANZEN！ふたりはプリキュア</td><td>五條　真由美</td></tr>
+<tr><td>42083</td><td>千曲川</td><td>五木　ひろし</td></tr>
+<tr><td>42084</td><td>翼をください</td><td>赤い鳥</td></tr>
+<tr><td>42085</td><td>テイク・ミー・ホーム・カントリーロード（TAKE ME HOME COUNTRY ROADS）</td><td>オリビア・ニュートン・ジョン</td></tr>
+<tr><td>42086</td><td>手紙</td><td>由紀　さおり</td></tr>
+<tr><td>42087</td><td>東京</td><td>やしき　たかじん</td></tr>
+<tr><td>42088</td><td>東京砂漠</td><td>内山田　洋とクール・ファイブ</td></tr>
+<tr><td>42089</td><td>遠くで汽笛を聞きながら</td><td>アリス</td></tr>
+<tr><td>42090</td><td>時の過ぎゆくままに</td><td>沢田　研二</td></tr>
+<tr><td>42091</td><td>長い間</td><td>Kiroro</td></tr>
+<tr><td>42092</td><td>長崎から船に乗って</td><td>五木　ひろし</td></tr>
+<tr><td>42093</td><td>長崎は今日も雨だった</td><td>内山田　洋とクール・ファイブ</td></tr>
+<tr><td>42094</td><td>中ノ島ブルース</td><td>内山田　洋とクール・ファイブ</td></tr>
+<tr><td>42095</td><td>浪花節だよ人生は</td><td>木村　友衛</td></tr>
+<tr><td>42096</td><td>なみだ恋</td><td>八代　亜紀</td></tr>
+<tr><td>42097</td><td>涙のリクエスト</td><td>チェッカーズ</td></tr>
+<tr><td>42098</td><td>狙いうち</td><td>山本　リンダ</td></tr>
+<tr><td>42099</td><td>橋場の渡し</td><td>五木　ひろし</td></tr>
+<tr><td>42100</td><td>初恋</td><td>村下　孝蔵</td></tr>
+<tr><td>42101</td><td>ハッピー・バースディ・トゥ・ユー</td><td>童謡・唱歌</td></tr>
+<tr><td>42102</td><td>花</td><td>ORANGE RANGE</td></tr>
+<tr><td>42103</td><td>花と竜</td><td>村田　英雄</td></tr>
+<tr><td>42104</td><td>花は桜 君は美し</td><td>いきものがかり</td></tr>
+<tr><td>42105</td><td>花街の母</td><td>金田　たつえ</td></tr>
+<tr><td>42106</td><td>Happiness</td><td>嵐</td></tr>
+<tr><td>42107</td><td>氷雨</td><td>佳山　明生</td></tr>
+<tr><td>42108</td><td>ひだまりの詩(うた)</td><td>Le Couple(ル・クプル)</td></tr>
+<tr><td>42109</td><td>ひまわり</td><td>遊助</td></tr>
+<tr><td>42110</td><td>琵琶湖周航の歌</td><td>加藤　登紀子</td></tr>
+<tr><td>42111</td><td>ｆｆ (フォルティシモ)</td><td>HOUND DOG</td></tr>
+<tr><td>42112</td><td>釜山港へ帰れ</td><td>渥美　二郎</td></tr>
+<tr><td>42113</td><td>ブランデーグラス</td><td>石原　裕次郎</td></tr>
+<tr><td>42114</td><td>ブルー・シャトウ</td><td>ジャッキー吉川とブルー・コメッツ</td></tr>
+<tr><td>42115</td><td>ブルーライト・ヨコハマ</td><td>いしだ　あゆみ</td></tr>
+<tr><td>42116</td><td>プレイバックPart2</td><td>山口　百恵</td></tr>
+<tr><td>42117</td><td>べにばな</td><td>五木　ひろし</td></tr>
+<tr><td>42118</td><td>ヘビーローテーション</td><td>AKB48</td></tr>
+<tr><td>42119</td><td>望郷酒場</td><td>千　昌夫</td></tr>
+<tr><td>42120</td><td>抱擁</td><td>箱崎　晋一郎</td></tr>
+<tr><td>42121</td><td>星降る街角</td><td>敏　いとうとハッピー＆ブルー</td></tr>
+<tr><td>42122</td><td>ホテル・カリフォルニア（HOTEL CALIFORNIA）</td><td>イーグルス</td></tr>
+<tr><td>42123</td><td>マイ・ウェイ（MY WAY）</td><td>Frank Sinatra</td></tr>
+<tr><td>42124</td><td>まつり</td><td>北島　三郎</td></tr>
+<tr><td>42125</td><td>マディソン郡の恋</td><td>秋元　順子</td></tr>
+<tr><td>42126</td><td>マル・マル・モリ・モリ!</td><td>薫と友樹､たまにムック｡</td></tr>
+<tr><td>42127</td><td>魅せられて</td><td>ジュディ・オング</td></tr>
+<tr><td>42128</td><td>みちのくひとり旅</td><td>山本　譲二</td></tr>
+<tr><td>42129</td><td>無言坂</td><td>香西　かおり</td></tr>
+<tr><td>42130</td><td>燃えろいい女</td><td>ツイスト</td></tr>
+<tr><td>42131</td><td>ヤングマン (Y M C A)</td><td>西城　秀樹</td></tr>
+<tr><td>42132</td><td>雪國</td><td>吉　幾三</td></tr>
+<tr><td>42133</td><td>夢追い酒</td><td>渥美　二郎</td></tr>
+<tr><td>42134</td><td>夜明けのうた</td><td>岸　洋子</td></tr>
+<tr><td>42135</td><td>嫁に来ないか</td><td>新沼　謙治</td></tr>
+<tr><td>42136</td><td>ラスト･ダンスは私に</td><td>越路　吹雪</td></tr>
+<tr><td>42137</td><td>Lovers Again</td><td>EXILE</td></tr>
+<tr><td>42138</td><td>ラヴ・イズ・オーヴァー</td><td>欧陽　菲菲</td></tr>
+<tr><td>42139</td><td>ラ♪ラ♪ラ♪スイートプリキュア♪</td><td>工藤　真由</td></tr>
+<tr><td>42140</td><td>RUNNER</td><td>爆風スランプ</td></tr>
+<tr><td>42141</td><td>わたしの城下町</td><td>小柳　ルミ子</td></tr>
+<tr><td>42142</td><td>バスターズ　レディーゴー！</td><td>高橋　秀幸 (Project.R)</td></tr>
+<tr><td>42143</td><td>また君に恋してる</td><td>坂本　冬美</td></tr>
+<tr><td>42144</td><td>夜明けのブルース</td><td>五木　ひろし</td></tr>
+<tr><td>50009</td><td>めだかの兄妹</td><td>わらべ</td></tr>
+<tr><td>50023</td><td>あー夏休み</td><td>TUBE</td></tr>
+<tr><td>50031</td><td>愛は勝つ</td><td>KAN</td></tr>
+<tr><td>50037</td><td>島唄</td><td>THE BOOM</td></tr>
+<tr><td>50039</td><td>愛しき日々</td><td>堀内　孝雄</td></tr>
+<tr><td>50043</td><td>浪漫飛行</td><td>米米CLUB</td></tr>
+<tr><td>50054</td><td>ルビーの指環</td><td>寺尾　聰</td></tr>
+<tr><td>50055</td><td>とんぼ</td><td>長渕　剛</td></tr>
+<tr><td>50088</td><td>涙のキッス</td><td>サザンオールスターズ</td></tr>
+<tr><td>50091</td><td>FIRST LOVE</td><td>宇多田　ヒカル</td></tr>
+<tr><td>50094</td><td>もしかしてPART2</td><td>小林　幸子＆美樹　克彦</td></tr>
+<tr><td>50095</td><td>AUTOMATIC</td><td>宇多田　ヒカル</td></tr>
+<tr><td>50114</td><td>君は心の妻だから</td><td>鶴岡　雅義＆東京ロマンチカ</td></tr>
+<tr><td>50115</td><td>霧の摩周湖</td><td>布施　明</td></tr>
+<tr><td>50120</td><td>チャコの海岸物語</td><td>サザンオールスターズ</td></tr>
+<tr><td>50122</td><td>翼の折れた天使</td><td>中村　あゆみ</td></tr>
+<tr><td>50124</td><td>時には娼婦のように</td><td>黒沢　年男</td></tr>
+<tr><td>50127</td><td>年輪</td><td>北島　三郎</td></tr>
+<tr><td>50131</td><td>哀しみ本線日本海</td><td>森　昌子</td></tr>
+<tr><td>50133</td><td>長い夜</td><td>松山　千春</td></tr>
+<tr><td>50138</td><td>ランナ・ウェイ</td><td>シャネルズ</td></tr>
+<tr><td>50143</td><td>恋人がサンタクロース</td><td>松任谷　由実</td></tr>
+<tr><td>50146</td><td>心凍らせて</td><td>高山　厳</td></tr>
+<tr><td>50153</td><td>東京めぐり愛</td><td>琴風　豪規＆石川　さゆり</td></tr>
+<tr><td>50159</td><td>万里の河</td><td>CHAGE＆ASKA（チャゲ＆飛鳥）</td></tr>
+<tr><td>50163</td><td>星はなんでも知っている</td><td>平尾　昌晃</td></tr>
+<tr><td>50164</td><td>ホテル</td><td>島津　ゆたか</td></tr>
+<tr><td>50167</td><td>聖母(マドンナ)たちのララバイ</td><td>岩崎　宏美</td></tr>
+<tr><td>50171</td><td>夢芝居</td><td>梅沢　富美男</td></tr>
+<tr><td>50172</td><td>夢の中へ</td><td>斉藤　由貴</td></tr>
+<tr><td>50175</td><td>ルージュの伝言</td><td>松任谷　由実</td></tr>
+<tr><td>50176</td><td>別れの朝</td><td>ペドロ＆カプリシャス</td></tr>
+<tr><td>50177</td><td>私はピアノ</td><td>高田　みづえ</td></tr>
+<tr><td>50178</td><td>めざせポケモンマスター</td><td>松本　梨香</td></tr>
+<tr><td>50189</td><td>小指の想い出</td><td>伊東　ゆかり</td></tr>
+<tr><td>50190</td><td>だんな様</td><td>三船　和子</td></tr>
+<tr><td>50195</td><td>順子</td><td>長渕　剛</td></tr>
+<tr><td>50196</td><td>なみだの操</td><td>殿さまキングス</td></tr>
+<tr><td>50207</td><td>越冬つばめ</td><td>森　昌子</td></tr>
+<tr><td>50209</td><td>OH MY LITTLE GIRL</td><td>尾崎　豊</td></tr>
+<tr><td>50214</td><td>あなたに会えてよかった</td><td>小泉　今日子</td></tr>
+<tr><td>50233</td><td>星屑のステージ</td><td>チェッカーズ</td></tr>
+<tr><td>50237</td><td>真夏の果実</td><td>サザンオールスターズ</td></tr>
+<tr><td>50241</td><td>夫婦舟</td><td>三笠　優子</td></tr>
+<tr><td>50243</td><td>MELODY</td><td>福山　雅治</td></tr>
+<tr><td>50245</td><td>Ya  Ya (あの時代を忘れない)</td><td>サザンオールスターズ</td></tr>
+<tr><td>50247</td><td>揺れる想い</td><td>ZARD</td></tr>
+<tr><td>50248</td><td>ラブ・ストーリーは突然に</td><td>小田　和正</td></tr>
+<tr><td>50254</td><td>渡良瀬橋</td><td>森高　千里</td></tr>
+<tr><td>50257</td><td>空も飛べるはず</td><td>スピッツ</td></tr>
+<tr><td>50258</td><td>津軽恋女</td><td>新沼　謙治</td></tr>
+<tr><td>50260</td><td>コモエスタ赤坂</td><td>ロス・インディオス</td></tr>
+<tr><td>50268</td><td>さそり座の女</td><td>美川　憲一</td></tr>
+<tr><td>50270</td><td>DEPARTURES</td><td>globe</td></tr>
+<tr><td>50272</td><td>HERO　ヒーローになる時それは今</td><td>甲斐バンド</td></tr>
+<tr><td>50274</td><td>LOVE PHANTOM</td><td>B'z</td></tr>
+<tr><td>50281</td><td>ロマンスの神様</td><td>広瀬　香美</td></tr>
+<tr><td>50289</td><td>CAT'S EYE</td><td>杏里</td></tr>
+<tr><td>50305</td><td>季節の中で</td><td>松山　千春</td></tr>
+<tr><td>50309</td><td>世界が終るまでは ･･･</td><td>WANDS</td></tr>
+<tr><td>50313</td><td>百万本のバラ</td><td>加藤　登紀子</td></tr>
+<tr><td>50314</td><td>小樽運河</td><td>都　はるみ</td></tr>
+<tr><td>50315</td><td>恋の奴隷</td><td>奥村　チヨ</td></tr>
+<tr><td>50318</td><td>オネスティ（HONESTY）</td><td>ビリー・ジョエル</td></tr>
+<tr><td>50320</td><td>はがゆい唇</td><td>高橋　真梨子</td></tr>
+<tr><td>50321</td><td>宗右衛門町ブルース</td><td>平和　勝次とダークホース</td></tr>
+<tr><td>50322</td><td>別れの予感</td><td>テレサ・テン</td></tr>
+<tr><td>50325</td><td>北帰行</td><td>小林　旭</td></tr>
+<tr><td>50326</td><td>別れの一本杉</td><td>春日　八郎</td></tr>
+<tr><td>50328</td><td>圭子の夢は夜ひらく</td><td>藤　圭子</td></tr>
+<tr><td>50329</td><td>道頓堀人情</td><td>天童　よしみ</td></tr>
+<tr><td>50331</td><td>妹</td><td>かぐや姫</td></tr>
+<tr><td>50332</td><td>君がいるだけで</td><td>米米CLUB</td></tr>
+<tr><td>50334</td><td>少女A</td><td>中森　明菜</td></tr>
+<tr><td>50336</td><td>山</td><td>北島　三郎</td></tr>
+<tr><td>50337</td><td>スタンド・バイ・ミー（STAND BY ME）</td><td>ベン・イー・キング</td></tr>
+<tr><td>50341</td><td>骨まで愛して</td><td>城　卓也</td></tr>
+<tr><td>50344</td><td>サイレント・イヴ</td><td>辛島　美登里</td></tr>
+<tr><td>50346</td><td>涙くんさよなら</td><td>坂本　九</td></tr>
+<tr><td>50347</td><td>関白宣言</td><td>さだ　まさし</td></tr>
+<tr><td>50348</td><td>雨</td><td>森高　千里</td></tr>
+<tr><td>50352</td><td>けんかをやめて</td><td>竹内　まりや</td></tr>
+<tr><td>50357</td><td>恋</td><td>松山　千春</td></tr>
+<tr><td>50358</td><td>卒業</td><td>斉藤　由貴</td></tr>
+<tr><td>50362</td><td>あゝ無情</td><td>アン・ルイス</td></tr>
+<tr><td>50364</td><td>未来予想図</td><td>DREAMS COME TRUE</td></tr>
+<tr><td>50365</td><td>昔の名前で出ています</td><td>小林　旭</td></tr>
+<tr><td>50366</td><td>ズルい女</td><td>シャ乱Q</td></tr>
+<tr><td>50367</td><td>レット・イット・ビー（LET IT BE）</td><td>ビートルズ</td></tr>
+<tr><td>50368</td><td>ジェラシー</td><td>井上　陽水</td></tr>
+<tr><td>50373</td><td>時代おくれ</td><td>河島　英五</td></tr>
+<tr><td>50374</td><td>昭和枯れすすき</td><td>さくらと一郎</td></tr>
+<tr><td>50375</td><td>ひとり酒</td><td>伍代　夏子</td></tr>
+<tr><td>50383</td><td>いちご白書をもう一度</td><td>バンバン</td></tr>
+<tr><td>50384</td><td>真赤な太陽</td><td>美空　ひばり</td></tr>
+<tr><td>50388</td><td>祝い船</td><td>門脇　陸男</td></tr>
+<tr><td>50389</td><td>ダンシング・オールナイト</td><td>もんた＆ブラザーズ</td></tr>
+<tr><td>50390</td><td>恋の町札幌</td><td>石原　裕次郎</td></tr>
+<tr><td>50393</td><td>冬のリヴィエラ</td><td>森　進一</td></tr>
+<tr><td>50395</td><td>アンパンマンのマーチ</td><td>ドリーミング</td></tr>
+<tr><td>50396</td><td>オラはにんきもの</td><td>のはら　しんのすけ</td></tr>
+<tr><td>50397</td><td>サザエさん</td><td>宇野　ゆう子</td></tr>
+<tr><td>50398</td><td>となりのトトロ</td><td>井上　あずみ</td></tr>
+<tr><td>50399</td><td>ドラえもんのうた</td><td>山野　さと子</td></tr>
+<tr><td>50400</td><td>海峡</td><td>吉　幾三</td></tr>
+<tr><td>50401</td><td>風立ちぬ</td><td>松田　聖子</td></tr>
+<tr><td>50403</td><td>黄砂に吹かれて</td><td>工藤　静香</td></tr>
+<tr><td>50408</td><td>十九の春</td><td>田端　義夫</td></tr>
+<tr><td>50409</td><td>リバーサイド・ホテル</td><td>井上　陽水</td></tr>
+<tr><td>50412</td><td>悲しみがとまらない</td><td>杏里</td></tr>
+<tr><td>50413</td><td>忘れていいの</td><td>谷村　新司＆小川　知子</td></tr>
+<tr><td>50417</td><td>ラブ・ミー・テンダー（LOVE ME TENDER）</td><td>エルヴィス・プレスリー</td></tr>
+<tr><td>50418</td><td>佐渡おけさ</td><td>新潟県民謡</td></tr>
+<tr><td>50420</td><td>北海盆唄</td><td>北海道民謡</td></tr>
+<tr><td>50421</td><td>LOVE マシーン</td><td>モーニング娘。</td></tr>
+<tr><td>50423</td><td>夜空ノムコウ</td><td>SMAP</td></tr>
+<tr><td>50426</td><td>UFO</td><td>ピンク・レディー</td></tr>
+<tr><td>50428</td><td>ムーン・リバー（Moon River）</td><td>アンディ・ウイリアムス(Andy Williams)</td></tr>
+<tr><td>50429</td><td>イエスタディ・ワンス・モア (Yesterday Once More)</td><td>カーペンターズ</td></tr>
+<tr><td>50431</td><td>いとしのエリー</td><td>サザンオールスターズ</td></tr>
+<tr><td>50432</td><td>イマジン (imagine)</td><td>ジョン・レノン</td></tr>
+<tr><td>50434</td><td>ロビンソン</td><td>スピッツ</td></tr>
+<tr><td>50435</td><td>オンリーユー (And you Alone)</td><td>The Platters</td></tr>
+<tr><td>50439</td><td>ウィ・アー・ザ・ワールド（We Are The World）</td><td>USAフォー・アフリカ</td></tr>
+<tr><td>50444</td><td>大井追っかけ音次郎</td><td>氷川　きよし</td></tr>
+<tr><td>50449</td><td>箱根八里の半次郎</td><td>氷川　きよし</td></tr>
+<tr><td>50454</td><td>夕焼け雲</td><td>千　昌夫</td></tr>
+<tr><td>50458</td><td>らいおんハート</td><td>SMAP</td></tr>
+<tr><td>50459</td><td>アゲハ蝶</td><td>ポルノグラフィティ</td></tr>
+<tr><td>50462</td><td>天体観測</td><td>BUMP OF CHICKEN</td></tr>
+<tr><td>50465</td><td>Best Friend</td><td>Kiroro</td></tr>
+<tr><td>50470</td><td>あずさ2号</td><td>狩人</td></tr>
+<tr><td>50472</td><td>あなたにあげる</td><td>西川　峰子</td></tr>
+<tr><td>50476</td><td>嵐を呼ぶ男</td><td>石原　裕次郎</td></tr>
+<tr><td>50480</td><td>演歌兄弟</td><td>北島　三郎＆鳥羽　一郎</td></tr>
+<tr><td>50510</td><td>雪が降る</td><td>アダモ</td></tr>
+<tr><td>50512</td><td>大きな古時計</td><td>平井　堅</td></tr>
+<tr><td>50514</td><td>タッチ</td><td>岩崎　良美</td></tr>
+<tr><td>50521</td><td>秋田おばこ</td><td>秋田県民謡</td></tr>
+<tr><td>50522</td><td>五木の子守唄</td><td>熊本県民謡</td></tr>
+<tr><td>50523</td><td>お江戸日本橋</td><td>東京都民謡</td></tr>
+<tr><td>50524</td><td>貝殻節</td><td>鳥取県民謡</td></tr>
+<tr><td>50525</td><td>鹿児島おはら節</td><td>鹿児島県民謡</td></tr>
+<tr><td>50526</td><td>木曽節</td><td>長野県民謡</td></tr>
+<tr><td>50527</td><td>草津節</td><td>群馬県民謡</td></tr>
+<tr><td>50528</td><td>コキリコ節</td><td>富山県民謡</td></tr>
+<tr><td>50529</td><td>金毘羅舟々</td><td>香川県民謡</td></tr>
+<tr><td>50530</td><td>斉太郎節</td><td>宮城県民謡</td></tr>
+<tr><td>50531</td><td>ソーラン節</td><td>北海道民謡</td></tr>
+<tr><td>50532</td><td>津軽じょんから節</td><td>青森県民謡</td></tr>
+<tr><td>50533</td><td>デカンショ節</td><td>兵庫県民謡</td></tr>
+<tr><td>50534</td><td>南部牛追唄</td><td>岩手県民謡</td></tr>
+<tr><td>50535</td><td>花笠踊り</td><td>山形県民謡</td></tr>
+<tr><td>50536</td><td>真室川音頭</td><td>山形県民謡</td></tr>
+<tr><td>50537</td><td>八木節</td><td>群馬県民謡</td></tr>
+<tr><td>50538</td><td>安来節</td><td>島根県民謡</td></tr>
+<tr><td>50539</td><td>軍艦行進曲</td><td>軍歌</td></tr>
+<tr><td>50540</td><td>敵は幾万</td><td>軍歌</td></tr>
+<tr><td>50541</td><td>日本海海戦</td><td>軍歌</td></tr>
+<tr><td>50542</td><td>日本海軍</td><td>軍歌</td></tr>
+<tr><td>50543</td><td>広瀬中佐</td><td>軍歌（文部省唱歌）</td></tr>
+<tr><td>50544</td><td>道は六百八十里</td><td>軍歌</td></tr>
+<tr><td>50545</td><td>雪の進軍</td><td>軍歌</td></tr>
+<tr><td>50546</td><td>青い目の人形</td><td>童謡</td></tr>
+<tr><td>50547</td><td>赤い靴</td><td>童謡</td></tr>
+<tr><td>50548</td><td>海</td><td>文部省唱歌</td></tr>
+<tr><td>50549</td><td>かもめの水兵さん</td><td>童謡</td></tr>
+<tr><td>50550</td><td>荒城の月</td><td>唱歌</td></tr>
+<tr><td>50551</td><td>ずいずいずっころばし</td><td>童謡</td></tr>
+<tr><td>50552</td><td>茶つみ</td><td>文部省唱歌</td></tr>
+<tr><td>50553</td><td>浜辺の歌</td><td>唱歌</td></tr>
+<tr><td>50554</td><td>冬景色</td><td>文部省唱歌</td></tr>
+<tr><td>50555</td><td>冬の夜</td><td>童謡</td></tr>
+<tr><td>50556</td><td>村のかじや</td><td>文部省唱歌</td></tr>
+<tr><td>50557</td><td>村まつり</td><td>文部省唱歌</td></tr>
+<tr><td>50558</td><td>りんごのひとりごと</td><td>童謡</td></tr>
+<tr><td>50563</td><td>だんご３兄弟</td><td>おかあさんといっしょより</td></tr>
+<tr><td>50566</td><td>さんぽ</td><td>井上　あずみ</td></tr>
+<tr><td>50572</td><td>鳥取砂丘</td><td>水森　かおり</td></tr>
+<tr><td>50576</td><td>仰げば尊し</td><td>文部省唱歌</td></tr>
+<tr><td>50577</td><td>あんたがたどこさ</td><td>わらべうた</td></tr>
+<tr><td>50578</td><td>池の鯉</td><td>文部省唱歌</td></tr>
+<tr><td>50579</td><td>うさぎ うさぎ</td><td>わらべうた</td></tr>
+<tr><td>50580</td><td>牛若丸</td><td>文部省唱歌</td></tr>
+<tr><td>50581</td><td>浦島太郎</td><td>唱歌</td></tr>
+<tr><td>50582</td><td>案山子 (かかし)</td><td>文部省唱歌</td></tr>
+<tr><td>50583</td><td>かごめ かごめ</td><td>わらべうた</td></tr>
+<tr><td>50584</td><td>かぞえうた</td><td>日本古謡</td></tr>
+<tr><td>50585</td><td>かたつむり</td><td>文部省唱歌</td></tr>
+<tr><td>50586</td><td>鯉のぼり</td><td>文部省唱歌</td></tr>
+<tr><td>50587</td><td>さくら</td><td>日本古謡</td></tr>
+<tr><td>50588</td><td>たこのうた</td><td>童謡</td></tr>
+<tr><td>50589</td><td>蝶々</td><td>童謡</td></tr>
+<tr><td>50590</td><td>月</td><td>文部省唱歌</td></tr>
+<tr><td>50591</td><td>通りゃんせ</td><td>わらべうた</td></tr>
+<tr><td>50592</td><td>鳩</td><td>文部省唱歌</td></tr>
+<tr><td>50593</td><td>花いちもんめ</td><td>わらべうた</td></tr>
+<tr><td>50594</td><td>ひらいた ひらいた</td><td>わらべうた</td></tr>
+<tr><td>50595</td><td>ふじの山</td><td>文部省唱歌</td></tr>
+<tr><td>50596</td><td>蛍の光</td><td>スコットランド民謡</td></tr>
+<tr><td>50597</td><td>虫のこえ</td><td>文部省唱歌</td></tr>
+<tr><td>50598</td><td>むすんで ひらいて</td><td>文部省唱歌</td></tr>
+<tr><td>50599</td><td>雪</td><td>文部省唱歌</td></tr>
+<tr><td>50600</td><td>われは海の子</td><td>文部省唱歌</td></tr>
+<tr><td>50601</td><td>おこさ節</td><td>秋田県民謡</td></tr>
+<tr><td>50602</td><td>紅花摘唄</td><td>山形県民謡</td></tr>
+<tr><td>50603</td><td>新庄節</td><td>山形県民謡</td></tr>
+<tr><td>50604</td><td>さんさ時雨</td><td>宮城県民謡</td></tr>
+<tr><td>50605</td><td>長持唄</td><td>宮城県民謡</td></tr>
+<tr><td>50606</td><td>相馬盆唄</td><td>福島県民謡</td></tr>
+<tr><td>50607</td><td>新相馬節</td><td>福島県民謡</td></tr>
+<tr><td>50608</td><td>日光和楽踊り</td><td>栃木県民謡</td></tr>
+<tr><td>50609</td><td>磯節</td><td>茨城県民謡</td></tr>
+<tr><td>50610</td><td>銚子大漁節</td><td>千葉県民謡</td></tr>
+<tr><td>50611</td><td>木更津甚句</td><td>千葉県民謡</td></tr>
+<tr><td>50612</td><td>大島節</td><td>東京都民謡</td></tr>
+<tr><td>50613</td><td>小諸馬子唄</td><td>長野県民謡</td></tr>
+<tr><td>50614</td><td>郡上節</td><td>岐阜県民謡</td></tr>
+<tr><td>50615</td><td>岡崎五万石</td><td>愛知県民謡</td></tr>
+<tr><td>50616</td><td>山中節</td><td>石川県民謡</td></tr>
+<tr><td>50617</td><td>伊勢音頭</td><td>三重県民謡</td></tr>
+<tr><td>50618</td><td>下津井節</td><td>岡山県民謡</td></tr>
+<tr><td>50619</td><td>関の五本松</td><td>島根県民謡</td></tr>
+<tr><td>50620</td><td>男なら</td><td>山口県民謡</td></tr>
+<tr><td>50621</td><td>阿波踊り</td><td>徳島県民謡</td></tr>
+<tr><td>50622</td><td>伊予節</td><td>愛媛県民謡</td></tr>
+<tr><td>50623</td><td>よさこい節</td><td>高知県民謡</td></tr>
+<tr><td>50624</td><td>稗搗(ひえつき)節</td><td>宮崎県民謡</td></tr>
+<tr><td>50625</td><td>刈干切唄</td><td>宮崎県民謡</td></tr>
+<tr><td>50626</td><td>愛はかげろう</td><td>雅夢</td></tr>
+<tr><td>50627</td><td>碧(あお)いうさぎ</td><td>酒井　法子</td></tr>
+<tr><td>50629</td><td>アジアの純真</td><td>Puffy</td></tr>
+<tr><td>50630</td><td>あの日にかえりたい</td><td>松任谷　由実</td></tr>
+<tr><td>50634</td><td>想い出がいっぱい</td><td>H2O</td></tr>
+<tr><td>50635</td><td>俺たちの旅</td><td>中村　雅俊</td></tr>
+<tr><td>50636</td><td>飾りじゃないのよ涙は</td><td>中森　明菜</td></tr>
+<tr><td>50637</td><td>ガッツだぜ！！</td><td>ウルフルズ</td></tr>
+<tr><td>50638</td><td>君は天然色</td><td>大滝　詠一</td></tr>
+<tr><td>50640</td><td>結婚しようよ</td><td>吉田　拓郎</td></tr>
+<tr><td>50641</td><td>恋しくて</td><td>BEGIN</td></tr>
+<tr><td>50642</td><td>恋の予感</td><td>安全地帯</td></tr>
+<tr><td>50644</td><td>心もよう</td><td>井上　陽水</td></tr>
+<tr><td>50645</td><td>これが私の生きる道</td><td>Puffy</td></tr>
+<tr><td>50646</td><td>サボテンの花 ～ひとつ屋根の下より～</td><td>チューリップ</td></tr>
+<tr><td>50647</td><td>SOMEDAY</td><td>佐野　元春</td></tr>
+<tr><td>50649</td><td>春夏秋冬</td><td>泉谷　しげる</td></tr>
+<tr><td>50651</td><td>September</td><td>竹内　まりや</td></tr>
+<tr><td>50652</td><td>太陽がくれた季節</td><td>青い三角定規</td></tr>
+<tr><td>50654</td><td>人生(たび)の空から</td><td>松山　千春</td></tr>
+<tr><td>50655</td><td>てんとう虫のサンバ</td><td>チェリッシュ</td></tr>
+<tr><td>50656</td><td>TOKIO</td><td>沢田　研二</td></tr>
+<tr><td>50657</td><td>夏の扉</td><td>松田　聖子</td></tr>
+<tr><td>50660</td><td>野風増 (のふうぞ) ～お前が20才になったら～</td><td>河島　英五</td></tr>
+<tr><td>50661</td><td>春一番</td><td>キャンディーズ</td></tr>
+<tr><td>50662</td><td>ひなげしの花</td><td>アグネス・チャン</td></tr>
+<tr><td>50663</td><td>for you…</td><td>高橋　真梨子</td></tr>
+<tr><td>50664</td><td>冬の稲妻</td><td>アリス</td></tr>
+<tr><td>50665</td><td>ペッパー警部</td><td>ピンク・レディー</td></tr>
+<tr><td>50666</td><td>微笑(ほほえみ)がえし</td><td>キャンディーズ</td></tr>
+<tr><td>50668</td><td>Missing</td><td>久保田　利伸</td></tr>
+<tr><td>50669</td><td>みんなのうた</td><td>サザンオールスターズ</td></tr>
+<tr><td>50671</td><td>メリー・ジェーン</td><td>つのだ☆ひろ</td></tr>
+<tr><td>50677</td><td>COLORS</td><td>宇多田　ヒカル</td></tr>
+<tr><td>50699</td><td>ALL THROUGH THE NIGHT</td><td>イギリス民謡</td></tr>
+<tr><td>50700</td><td>ABCの歌（ALPHABET SONG）</td><td>フランス民謡</td></tr>
+<tr><td>50701</td><td>アメージング・グレース（AMAZING GRACE）</td><td>ゴスペル</td></tr>
+<tr><td>50702</td><td>AMERICA THE BEAUTIFUL</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50703</td><td>ANGELINA BAKER</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50704</td><td>AULD LANG SYNE</td><td>スコットランド民謡</td></tr>
+<tr><td>50705</td><td>アヴェマリア（AVE MARIA）</td><td>讃美歌</td></tr>
+<tr><td>50707</td><td>リパブリック讃歌（BATTLE HYMN OF THE REPUBLIC）</td><td>アメリカ民謡</td></tr>
+<tr><td>50708</td><td>BEAUTIFUL DREAMER</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50709</td><td>BELIEVE ME IF ALL THOSE ENDEARING YOUNG CHARMS</td><td>アイルランド民謡</td></tr>
+<tr><td>50710</td><td>BINGO</td><td>アメリカ民謡</td></tr>
+<tr><td>50711</td><td>BLACKSMITH</td><td>イギリス民謡</td></tr>
+<tr><td>50712</td><td>BLUE BELLS OF SCOTLAND</td><td>スコットランド民謡</td></tr>
+<tr><td>50713</td><td>草競馬（CAMPTOWN RACES）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50714</td><td>CAPTAIN JINKS</td><td>アメリカ童謡</td></tr>
+<tr><td>50715</td><td>懐かしのヴｧージニア（CARRY ME BACK TO OLD VIRGINNY）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50716</td><td>CIRIBIRIBIN</td><td>イタリア民謡</td></tr>
+<tr><td>50717</td><td>ブラームスの子守歌（CRADLE SONG BRAHMS）</td><td>ドイツ愛唱歌</td></tr>
+<tr><td>50718</td><td>シューベルトの子守歌（CRADLE SONG SCHUBERT）</td><td>ドイツ愛唱歌</td></tr>
+<tr><td>50719</td><td>かっこう（CUCKOO）</td><td>ドイツ民謡</td></tr>
+<tr><td>50720</td><td>ダニー・ボーイ（DANNY BOY）</td><td>アイルランド民謡</td></tr>
+<tr><td>50722</td><td>DOLCY JONES</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50724</td><td>DOWN BY THE RIVERSIDE</td><td>ゴスペル</td></tr>
+<tr><td>50725</td><td>DRINK TO ME ONLY WITH THINE EYES</td><td>イギリス民謡</td></tr>
+<tr><td>50726</td><td>ETON BOATING SONG</td><td>イギリス愛唱歌</td></tr>
+<tr><td>50727</td><td>FLEE AS A BIRD</td><td>スペイン民謡</td></tr>
+<tr><td>50728</td><td>FLOW GENTLY SWEET AFTON</td><td>スコットランド民謡</td></tr>
+<tr><td>50729</td><td>GENTLE ANNIE</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50731</td><td>HABANERA</td><td>フランス歌劇</td></tr>
+<tr><td>50732</td><td>HAIL TO THE CHIEF</td><td>スコットランド民謡</td></tr>
+<tr><td>50733</td><td>HALLELUJAH CHORUS</td><td>讃美歌</td></tr>
+<tr><td>50734</td><td>HARD TIMES COME AGAIN NO MORE</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50735</td><td>HARK THE HERALD ANGELS SING</td><td>讃美歌</td></tr>
+<tr><td>50736</td><td>HAS SORROW THY YOUNG DAYS SHADED</td><td>アイルランド民謡</td></tr>
+<tr><td>50737</td><td>峠の我が家（HOME ON THE RANGE）</td><td>アメリカ民謡</td></tr>
+<tr><td>50738</td><td>HOW FIRM A FOUNDATION</td><td>讃美歌</td></tr>
+<tr><td>50739</td><td>ユーモレスク（HUMORESKE）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50740</td><td>ハンプティ・ダンプティ（HUMPTY DUMPTY）</td><td>イギリス民謡</td></tr>
+<tr><td>50741</td><td>HUSH A BYE</td><td>イギリス童謡</td></tr>
+<tr><td>50742</td><td>HUSH LITTLE BABY</td><td>イギリス童謡</td></tr>
+<tr><td>50743</td><td>IN THE GOOD OLD SUMMERTIME</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50744</td><td>IT CAME UPON A MIDNIGHT CLEAR</td><td>讃美歌</td></tr>
+<tr><td>50745</td><td>金髪のジェニー（JEANIE WITH THE  LIGHT BROWN HAIR）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50746</td><td>KEEL ROW</td><td>スコットランド民謡</td></tr>
+<tr><td>50747</td><td>ラ・パロマ（LA PALOMA）</td><td>スペイン民謡</td></tr>
+<tr><td>50748</td><td>LA TRAVIATA</td><td>イタリア歌劇</td></tr>
+<tr><td>50749</td><td>LAST NIGHT</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50751</td><td>LITTLE BIRD</td><td>イギリス童謡</td></tr>
+<tr><td>50752</td><td>LOCH LOMOND</td><td>スコットランド民謡</td></tr>
+<tr><td>50754</td><td>MAPLE LEAF FOREVER</td><td>第２のカナダ国歌</td></tr>
+<tr><td>50755</td><td>MARCHING THROUGH GEORGIA</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50756</td><td>MARIA MARI</td><td>イタリア民謡</td></tr>
+<tr><td>50757</td><td>MARSEILLAISE</td><td>フランス国歌</td></tr>
+<tr><td>50758</td><td>メリーさんの羊（MARY HAD A LITTLE LAMB）</td><td>アメリカ童謡</td></tr>
+<tr><td>50759</td><td>MARYLAND MY MARYLAND</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50760</td><td>主は冷たい土の中に（MASSAS IN DE COLD GROUND）</td><td>アメリカ民謡</td></tr>
+<tr><td>50761</td><td>漕げよマイケル（MICHAEL ROW THE BOAT ASHORE）</td><td>アメリカ民謡</td></tr>
+<tr><td>50762</td><td>MILLER OF THE DEE</td><td>イギリス民謡</td></tr>
+<tr><td>50763</td><td>冬の星座（MOLLIE DARLING）</td><td>アメリカ民謡</td></tr>
+<tr><td>50765</td><td>マイ・ボニー（MY BONNIE）</td><td>アメリカ民謡</td></tr>
+<tr><td>50766</td><td>MY FAITH LOOKS UP TO THEE</td><td>讃美歌</td></tr>
+<tr><td>50767</td><td>MY LOVE IS LIKE A RED RED ROSE</td><td>イギリス民謡</td></tr>
+<tr><td>50768</td><td>MY LOVE SHES LIKE A LASSIE YET</td><td>スコットランド民謡</td></tr>
+<tr><td>50769</td><td>懐かしきケンタッキーの我が家（MY OLD KENTUCKY HOME）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50770</td><td>MY OWN NATIVE LAND</td><td>アイルランド民謡</td></tr>
+<tr><td>50771</td><td>NANCY LEE</td><td>イギリス愛唱歌</td></tr>
+<tr><td>50772</td><td>NELLY BLY</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50773</td><td>NIGHTINGALE SONG</td><td>フランス歌劇</td></tr>
+<tr><td>50774</td><td>NOBODY KNOWS THE TROUBLE IVE SEEN</td><td>ゴスペル</td></tr>
+<tr><td>50775</td><td>NOW I LAY ME DOWN TO SLEEP</td><td>イギリス民謡</td></tr>
+<tr><td>50776</td><td>O CHARLIE IS MY DARLING</td><td>スコットランド民謡</td></tr>
+<tr><td>50777</td><td>O HOLY NIGHT</td><td>讃美歌</td></tr>
+<tr><td>50778</td><td>O LITTLE TOWN OF BETHLEHEM</td><td>讃美歌</td></tr>
+<tr><td>50779</td><td>オー・ソレ・ミオ（O SOLE MIO）</td><td>イタリア民謡</td></tr>
+<tr><td>50780</td><td>OAK AND THE ASH</td><td>イギリス民謡</td></tr>
+<tr><td>50781</td><td>OH FOR A THOUSAND TONGUES</td><td>讃美歌</td></tr>
+<tr><td>50783</td><td>愛しのクレメンタイン（OH MY DARLING CLEMENTINE ）</td><td>アメリカ民謡</td></tr>
+<tr><td>50784</td><td>おお、スザンナ（OH SUSANNA）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50785</td><td>オー・ハッピー・デイ（OH!  HAPPY DAY）</td><td>ゴスペル</td></tr>
+<tr><td>50786</td><td>オールド・ブラック・ジョー（OLD BLACK JOE）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50788</td><td>OLD GRAY MARE</td><td>アメリカ民謡</td></tr>
+<tr><td>50790</td><td>OLD ROSIN THE BEAU</td><td>アイルランド民謡</td></tr>
+<tr><td>50792</td><td>ケーキをこねて（PAT A CAKE）</td><td>イギリス童謡</td></tr>
+<tr><td>50793</td><td>POLLY WOLLY DOODLE</td><td>アメリカ民謡</td></tr>
+<tr><td>50794</td><td>POP GOES THE WEASEL</td><td>イギリス童謡</td></tr>
+<tr><td>50796</td><td>RED WHITE AND BLUE</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50797</td><td>RESIGNATION</td><td>ドイツ愛唱歌</td></tr>
+<tr><td>50799</td><td>RIGOLETTO</td><td>イタリア歌劇</td></tr>
+<tr><td>50800</td><td>RING RING DE BANJO</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50801</td><td>ROBIN ADAIR</td><td>スコットランド民謡</td></tr>
+<tr><td>50802</td><td>ROCK-A-BYE BABY</td><td>イギリス民謡</td></tr>
+<tr><td>50803</td><td>ROW ROW ROW  YOUR BOAT</td><td>イギリス童謡</td></tr>
+<tr><td>50804</td><td>RUB-A-DUB-DUB</td><td>イギリス童謡</td></tr>
+<tr><td>50805</td><td>RULE BRITANNIA</td><td>第２のイギリス国歌</td></tr>
+<tr><td>50806</td><td>SAFELY THROUGH ANOTHER WEEK</td><td>讃美歌</td></tr>
+<tr><td>50807</td><td>SALLY IN OUR ALLEY</td><td>イギリス民謡</td></tr>
+<tr><td>50808</td><td>サンタ・ルチア（SANTA LUCIA）</td><td>イタリア民謡</td></tr>
+<tr><td>50809</td><td>黄色いリボン（SHE WORE A YELLOW RIBBON）</td><td>アメリカ民謡</td></tr>
+<tr><td>50810</td><td>SHENANDOAH</td><td>アメリカ民謡</td></tr>
+<tr><td>50811</td><td>SICILIANA</td><td>イタリア歌劇</td></tr>
+<tr><td>50812</td><td>SILVER THREADS AMONG THE GOLD</td><td>アメリカ民謡</td></tr>
+<tr><td>50813</td><td>SKIP TO MY LOU</td><td>アメリカ民謡</td></tr>
+<tr><td>50814</td><td>SON OF GOD GOES FORTH TO WAR</td><td>讃美歌</td></tr>
+<tr><td>50815</td><td>セント・ルイス・ブルース（ST. LOUIS BLUES）</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50816</td><td>STAR SPANGLED BANNER</td><td>アメリカ合衆国国歌</td></tr>
+<tr><td>50817</td><td>TEN LITTLE INDIANS</td><td>アメリカ童謡</td></tr>
+<tr><td>50820</td><td>THE SIDEWALKS OF NEW YORK</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50821</td><td>THREE LITTLE KITTENS</td><td>イギリス民謡</td></tr>
+<tr><td>50822</td><td>TOYLAND</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>50823</td><td>UPIDEE</td><td>ドイツ民謡</td></tr>
+<tr><td>50824</td><td>WALTZING MATILDA</td><td>第２のオーストラリア国歌</td></tr>
+<tr><td>50825</td><td>WHEN JOHNNY COMES MARCHING HOME</td><td>アメリカ民謡</td></tr>
+<tr><td>50826</td><td>聖者の行進（WHEN THE SAINTS GO MARCHIN' IN）</td><td>アメリカ民謡</td></tr>
+<tr><td>50828</td><td>WHILE SHEPHERDS WATCHED THEIR FLOCKS</td><td>讃美歌</td></tr>
+<tr><td>50835</td><td>赤い帽子白い帽子</td><td>童謡</td></tr>
+<tr><td>50836</td><td>朝日は昇りぬ</td><td>文部省唱歌</td></tr>
+<tr><td>50837</td><td>あの町この町</td><td>唱歌</td></tr>
+<tr><td>50838</td><td>雨ふり</td><td>童謡</td></tr>
+<tr><td>50839</td><td>雨降りお月さん</td><td>文部省唱歌</td></tr>
+<tr><td>50840</td><td>アルプス一万尺</td><td>わらべうた</td></tr>
+<tr><td>50841</td><td>一月一日</td><td>唱歌</td></tr>
+<tr><td>50842</td><td>一寸法師</td><td>唱歌</td></tr>
+<tr><td>50843</td><td>うさぎとかめ</td><td>唱歌</td></tr>
+<tr><td>50844</td><td>うさぎのダンス</td><td>童謡</td></tr>
+<tr><td>50845</td><td>おおさむこさむ</td><td>わらべうた</td></tr>
+<tr><td>50846</td><td>おぼろ月夜</td><td>唱歌</td></tr>
+<tr><td>50847</td><td>カチューシャの唄</td><td>唱歌</td></tr>
+<tr><td>50848</td><td>鎌倉</td><td>唱歌</td></tr>
+<tr><td>50849</td><td>汽車ポッポ</td><td>童謡</td></tr>
+<tr><td>50850</td><td>金魚のひるね</td><td>童謡</td></tr>
+<tr><td>50851</td><td>金太郎</td><td>唱歌</td></tr>
+<tr><td>50852</td><td>こうま</td><td>文部省唱歌</td></tr>
+<tr><td>50853</td><td>故郷(こきょう)の空</td><td>スコットランド民謡</td></tr>
+<tr><td>50854</td><td>叱られて</td><td>唱歌</td></tr>
+<tr><td>50855</td><td>四季の雨</td><td>文部省唱歌</td></tr>
+<tr><td>50856</td><td>証城寺の狸囃子</td><td>童謡</td></tr>
+<tr><td>50857</td><td>すずめのおやど</td><td>フランス民謡</td></tr>
+<tr><td>50858</td><td>砂山</td><td>唱歌</td></tr>
+<tr><td>50859</td><td>背くらべ</td><td>童謡</td></tr>
+<tr><td>50860</td><td>船頭小唄</td><td>唱歌</td></tr>
+<tr><td>50861</td><td>早春賦</td><td>唱歌</td></tr>
+<tr><td>50862</td><td>俵はごろごろ</td><td>わらべうた</td></tr>
+<tr><td>50863</td><td>二宮金次郎</td><td>文部省唱歌</td></tr>
+<tr><td>50864</td><td>庭の千草</td><td>アイルランド民謡</td></tr>
+<tr><td>50865</td><td>人形</td><td>文部省唱歌</td></tr>
+<tr><td>50866</td><td>野ばら</td><td>唱歌</td></tr>
+<tr><td>50867</td><td>埴生の宿</td><td>唱歌</td></tr>
+<tr><td>50868</td><td>波浮の港</td><td>文部省唱歌</td></tr>
+<tr><td>50869</td><td>浜千鳥</td><td>童謡</td></tr>
+<tr><td>50870</td><td>春がきた</td><td>唱歌</td></tr>
+<tr><td>50871</td><td>春よこい</td><td>童謡</td></tr>
+<tr><td>50872</td><td>菩提樹</td><td>唱歌</td></tr>
+<tr><td>50873</td><td>真白き富士の嶺</td><td>唱歌</td></tr>
+<tr><td>50874</td><td>桃太郎</td><td>唱歌</td></tr>
+<tr><td>50875</td><td>山寺の和尚さん</td><td>わらべうた</td></tr>
+<tr><td>50876</td><td>ゆりかごの歌</td><td>童謡</td></tr>
+<tr><td>50877</td><td>ローレライ</td><td>唱歌</td></tr>
+<tr><td>50878</td><td>祖谷の粉ひき唄</td><td>徳島県民謡</td></tr>
+<tr><td>50879</td><td>宇和島さんさ</td><td>愛媛県民謡</td></tr>
+<tr><td>50880</td><td>江差追分</td><td>北海道民謡</td></tr>
+<tr><td>50881</td><td>越中おわら節</td><td>富山県民謡</td></tr>
+<tr><td>50882</td><td>縁故節</td><td>山梨県民謡</td></tr>
+<tr><td>50883</td><td>お立ち酒</td><td>宮城県民謡</td></tr>
+<tr><td>50884</td><td>尾鷲節</td><td>三重県民謡</td></tr>
+<tr><td>50885</td><td>河内音頭</td><td>大阪府民謡</td></tr>
+<tr><td>50886</td><td>江州音頭</td><td>滋賀県民謡</td></tr>
+<tr><td>50887</td><td>コツコツ節</td><td>大分県民謡</td></tr>
+<tr><td>50888</td><td>庄内おばこ</td><td>山形県民謡</td></tr>
+<tr><td>50889</td><td>岳の新太郎さん</td><td>佐賀県民謡</td></tr>
+<tr><td>50890</td><td>田原坂</td><td>熊本県民謡</td></tr>
+<tr><td>50891</td><td>淡海節</td><td>滋賀県民謡</td></tr>
+<tr><td>50892</td><td>秩父音頭</td><td>埼玉県民謡</td></tr>
+<tr><td>50893</td><td>鶴崎踊り</td><td>大分県民謡</td></tr>
+<tr><td>50894</td><td>十三の砂山</td><td>青森県民謡</td></tr>
+<tr><td>50895</td><td>ノーエ節</td><td>静岡県民謡</td></tr>
+<tr><td>50896</td><td>のんのこ節</td><td>佐賀県民謡</td></tr>
+<tr><td>50897</td><td>箱根馬子唄</td><td>神奈川県民謡</td></tr>
+<tr><td>50898</td><td>福知山音頭</td><td>京都府民謡</td></tr>
+<tr><td>50899</td><td>ぶらぶら節</td><td>長崎県民謡</td></tr>
+<tr><td>50900</td><td>本荘追分</td><td>秋田県民謡</td></tr>
+<tr><td>50901</td><td>三国節</td><td>福井県民謡</td></tr>
+<tr><td>50902</td><td>三原やっさ節</td><td>広島県民謡</td></tr>
+<tr><td>50903</td><td>宮津節</td><td>京都府民謡</td></tr>
+<tr><td>50904</td><td>弥三郎節</td><td>青森県民謡</td></tr>
+<tr><td>50905</td><td>吉野川筏唄</td><td>奈良県民謡</td></tr>
+<tr><td>50909</td><td>明日に架ける橋</td><td>Simon ＆ Garfunkel</td></tr>
+<tr><td>50912</td><td>イフ・ウィ・ホールド・オン・トゥゲザー</td><td>ダイアナ・ロス</td></tr>
+<tr><td>50923</td><td>ダイアナ</td><td>ポール・アンカ</td></tr>
+<tr><td>50924</td><td>ダンシング・クイーン</td><td>アバ</td></tr>
+<tr><td>50926</td><td>テネシー・ワルツ</td><td>パティ・ペイジ</td></tr>
+<tr><td>50929</td><td>ヘイ・ジュード</td><td>ビートルズ</td></tr>
+<tr><td>50930</td><td>マイ・ハート・ウィル・ゴー・オン～タイタニック・愛のテーマ～</td><td>セリーヌ・ディオン</td></tr>
+<tr><td>50933</td><td>鉄道唱歌</td><td>唱歌</td></tr>
+<tr><td>50934</td><td>箱根八里</td><td>唱歌</td></tr>
+<tr><td>50935</td><td>仲よしこみち</td><td>童謡</td></tr>
+<tr><td>50936</td><td>桜井の訣別</td><td>唱歌</td></tr>
+<tr><td>50939</td><td>白い海峡</td><td>大月　みやこ</td></tr>
+<tr><td>50940</td><td>ぼくドラえもん</td><td>大山　のぶ代、こおろぎ'73</td></tr>
+<tr><td>50941</td><td>鳥の詩</td><td>杉田　かおる</td></tr>
+<tr><td>50942</td><td>くまのプーさん(日本詞)</td><td>ディズニー</td></tr>
+<tr><td>50943</td><td>春の小川</td><td>童謡・唱歌</td></tr>
+<tr><td>50945</td><td>ごめんね…</td><td>高橋　真梨子</td></tr>
+<tr><td>50962</td><td>エースをねらえ！</td><td>大杉　久美子</td></tr>
+<tr><td>50963</td><td>勇気りんりん</td><td>ドリーミング</td></tr>
+<tr><td>50965</td><td>故郷（ふるさと）</td><td>童謡・唱歌</td></tr>
+<tr><td>50967</td><td>七つの子</td><td>童謡・唱歌</td></tr>
+<tr><td>50969</td><td>I'm proud</td><td>華原　朋美</td></tr>
+<tr><td>50970</td><td>勇気100%</td><td>光GENJI</td></tr>
+<tr><td>50971</td><td>硝子の少年</td><td>KinKi Kids</td></tr>
+<tr><td>50980</td><td>何度でも</td><td>DREAMS COME TRUE</td></tr>
+<tr><td>50982</td><td>NO MORE CRY</td><td>D-51</td></tr>
+<tr><td>50983</td><td>さくら</td><td>ケツメイシ</td></tr>
+<tr><td>50986</td><td>しゃぼん玉</td><td>童謡・唱歌</td></tr>
+<tr><td>50987</td><td>もみじ</td><td>童謡・唱歌</td></tr>
+<tr><td>50988</td><td>アンパンマンたいそう</td><td>CHA-CHA</td></tr>
+<tr><td>50989</td><td>パンダうさぎコアラ</td><td>神崎　ゆう子、坂田　おさむ</td></tr>
+<tr><td>50990</td><td>伊良部トーガニー</td><td>沖縄曲（国吉　源次）</td></tr>
+<tr><td>50991</td><td>七月エイサー</td><td>沖縄曲（前川　守賢）</td></tr>
+<tr><td>50992</td><td>てぃんさぐぬ花</td><td>沖縄曲（宮里　康子、古謝　美佐子、宮里　奈美子、比屋根　幸乃）</td></tr>
+<tr><td>50993</td><td>デンサ節</td><td>沖縄曲（大浜　みね）</td></tr>
+<tr><td>50994</td><td>トゥバラーマ</td><td>沖縄曲（山里　勇吉）</td></tr>
+<tr><td>50995</td><td>ナークニー</td><td>沖縄曲（山里　ゆき）</td></tr>
+<tr><td>50996</td><td>なりやまあやぐ</td><td>沖縄曲（国吉　源次）</td></tr>
+<tr><td>50997</td><td>浜育ち</td><td>沖縄曲（城間　和子）</td></tr>
+<tr><td>50998</td><td>みるく節</td><td>沖縄曲（伊良皆　高吉、岡山　稔、喜舎場　英勝）</td></tr>
+<tr><td>50999</td><td>桃売いアン小</td><td>沖縄曲（田場　盛信、金城　恵子）</td></tr>
+<tr><td>51000</td><td>山崎ぬあぶじゃーま</td><td>沖縄曲（山里　勇吉）</td></tr>
+<tr><td>51001</td><td>ALL GLORY LAUD AND HONOR</td><td>讃美歌</td></tr>
+<tr><td>51002</td><td>ALL HAIL THE POWER OF JESUS NAME</td><td>讃美歌</td></tr>
+<tr><td>51003</td><td>BLEST BE THE TIE THAT BINDS</td><td>讃美歌</td></tr>
+<tr><td>51004</td><td>BOAT SONG</td><td>ドイツ歌曲</td></tr>
+<tr><td>51006</td><td>CARME</td><td>イタリア民謡</td></tr>
+<tr><td>51007</td><td>CHAIRS TO MEND</td><td>イギリス童謡</td></tr>
+<tr><td>51008</td><td>COME THOU FOUNT OF EVERY BLESSING</td><td>讃美歌</td></tr>
+<tr><td>51009</td><td>COME UNTO HIM</td><td>讃美歌</td></tr>
+<tr><td>51010</td><td>ELLEN BAYNE</td><td>アメリカ民謡</td></tr>
+<tr><td>51011</td><td>EVENING HYMN</td><td>讃美歌</td></tr>
+<tr><td>51012</td><td>FAIR HARVARD</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>51013</td><td>FAIREST LORD JESUS</td><td>讃美歌</td></tr>
+<tr><td>51014</td><td>FAREWELL MY LILLY DEAR</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>51015</td><td>GENTLE MAIDEN</td><td>アイルランド民謡</td></tr>
+<tr><td>51016</td><td>GO DOWN MOSES</td><td>黒人霊歌</td></tr>
+<tr><td>51017</td><td>GOD BE WITH YOU</td><td>讃美歌</td></tr>
+<tr><td>51018</td><td>GOLDEN SLUMBERS</td><td>イギリス童謡</td></tr>
+<tr><td>51019</td><td>HER BRIGHT SMILE</td><td>イギリス愛唱歌</td></tr>
+<tr><td>51020</td><td>HOW CAN I LEAVE THEE</td><td>ドイツ民謡</td></tr>
+<tr><td>51021</td><td>I LOVE MY LOVE</td><td>イギリス民謡</td></tr>
+<tr><td>51022</td><td>I LOVE THEE</td><td>ドイツ歌曲</td></tr>
+<tr><td>51023</td><td>I LOVE TO TELL THE STORY</td><td>讃美歌</td></tr>
+<tr><td>51024</td><td>I WAS A WANDERING SHEEP</td><td>讃美歌</td></tr>
+<tr><td>51025</td><td>I'M A PILGRIM</td><td>ゴスペル</td></tr>
+<tr><td>51026</td><td>I'M CALLED LITTLE BUTTERCUP</td><td>イギリス歌劇</td></tr>
+<tr><td>51027</td><td>I'M TROUBLED IN MIND</td><td>讃美歌</td></tr>
+<tr><td>51028</td><td>IN HEAVENLY LOVE ABIDING</td><td>讃美歌</td></tr>
+<tr><td>51029</td><td>IN THE GLOAMING</td><td>アメリカ愛唱歌</td></tr>
+<tr><td>51030</td><td>ISLE OF BEAUTY</td><td>イギリス民謡</td></tr>
+<tr><td>51031</td><td>JERUSALEM</td><td>讃美歌</td></tr>
+<tr><td>51032</td><td>JESUS LOVER OF MY SOUL</td><td>讃美歌</td></tr>
+<tr><td>51033</td><td>KATHLEEN MAVOURNEEN</td><td>アイルランド民謡</td></tr>
+<tr><td>51034</td><td>KNOCK'D 'EM IN THE OLD KENT ROAD</td><td>イギリス愛唱歌</td></tr>
+<tr><td>51035</td><td>LA BRABANCONNE</td><td>ベルギー国歌</td></tr>
+<tr><td>51036</td><td>LOOBY LOO</td><td>イギリス童謡</td></tr>
+<tr><td>51037</td><td>LOVE DIVINE ALL LOVES EXCELLING</td><td>讃美歌</td></tr>
+<tr><td>51038</td><td>LULLABY　GODARD</td><td>フランス歌劇</td></tr>
+<tr><td>51039</td><td>MORNING SERENADE</td><td>フランス歌曲</td></tr>
+<tr><td>51040</td><td>MY LOVE'S AN ARBUTUS</td><td>アイルランド民謡</td></tr>
+<tr><td>51041</td><td>MY OLD DUTCH</td><td>イギリス愛唱歌</td></tr>
+<tr><td>51042</td><td>NOW THE DAY IS OVER</td><td>讃美歌</td></tr>
+<tr><td>51043</td><td>O GOD OUR HELP IN AGES PAST</td><td>讃美歌</td></tr>
+<tr><td>51044</td><td>O JESUS THOU ART STANDING</td><td>讃美歌</td></tr>
+<tr><td>51045</td><td>OH BOYS CARRY ME LONG</td><td>アメリカ民謡</td></tr>
+<tr><td>51046</td><td>OH DEM GOLDEN SLIPPERS</td><td>黒人霊歌</td></tr>
+<tr><td>51047</td><td>OH HAPPY DAY THAT FIXED MY CHOICE</td><td>讃美歌</td></tr>
+<tr><td>51048</td><td>OLD HUNDREDTH</td><td>讃美歌</td></tr>
+<tr><td>51049</td><td>POLLY PUT THE KETTLE ON</td><td>イギリス童謡</td></tr>
+<tr><td>51050</td><td>ROCK OF AGES</td><td>讃美歌</td></tr>
+<tr><td>51051</td><td>SAINT PATRICK'S DAY</td><td>アイルランド民謡</td></tr>
+<tr><td>51052</td><td>SEE-SAW</td><td>イギリス童謡</td></tr>
+<tr><td>51053</td><td>SERENADE　MOSZKOWSKI</td><td>ドイツ歌曲</td></tr>
+<tr><td>51054</td><td>STARS OF THE SUMMER NIGHT</td><td>イギリス民謡</td></tr>
+<tr><td>51055</td><td>STEAL AWAY</td><td>黒人霊歌</td></tr>
+<tr><td>51056</td><td>STILL AS THE NIGHT</td><td>ドイツ歌曲</td></tr>
+<tr><td>51057</td><td>SUN OF MY SOUL</td><td>讃美歌</td></tr>
+<tr><td>51058</td><td>SWEET HOUR OF PRAYER</td><td>讃美歌</td></tr>
+<tr><td>51059</td><td>THE BLUEBIRD</td><td>讃美歌</td></tr>
+<tr><td>51060</td><td>THE FAREWELL</td><td>讃美歌</td></tr>
+<tr><td>51061</td><td>THE HARP THAT ONCE THROUGH TARA'S HALLS</td><td>アイルランド民謡</td></tr>
+<tr><td>51062</td><td>THE KING OF LOVE MY SHEPHERD IS</td><td>讃美歌</td></tr>
+<tr><td>51063</td><td>THE LASS OF RICHMOND HILL</td><td>イングランド民謡</td></tr>
+<tr><td>51064</td><td>THE PRETTY GIRL MILKING HER COW</td><td>アイルランド民謡</td></tr>
+<tr><td>51065</td><td>THE ROSE</td><td>ノルウェー歌劇</td></tr>
+<tr><td>51066</td><td>THE ROSE OF ALLANDALE</td><td>スコットランド民謡</td></tr>
+<tr><td>51067</td><td>THE SPACIOUS FIRMAMENT ON HIGH</td><td>讃美歌</td></tr>
+<tr><td>51068</td><td>TIT-WILLOW</td><td>イギリス歌曲</td></tr>
+<tr><td>51069</td><td>WAKE UP JACOB</td><td>黒人霊歌</td></tr>
+<tr><td>51070</td><td>WILL YOU COME TO THE BOW'R</td><td>アイルランド民謡</td></tr>
+<tr><td>51071</td><td>相川音頭</td><td>新潟県民謡</td></tr>
+<tr><td>51072</td><td>秋田船方節</td><td>秋田県民謡</td></tr>
+<tr><td>51073</td><td>磯浜盆唄</td><td>北海道民謡</td></tr>
+<tr><td>51074</td><td>俵つみ唄</td><td>青森県民謡</td></tr>
+<tr><td>51075</td><td>トイチンサ節</td><td>富山県民謡</td></tr>
+<tr><td>51076</td><td>粘土節</td><td>山梨県民謡</td></tr>
+<tr><td>51077</td><td>広島木遣り音頭</td><td>広島県民謡</td></tr>
+<tr><td>51078</td><td>鳩間節</td><td>沖縄曲（乙女　椿）</td></tr>
+<tr><td>51079</td><td>漲水ぬクイチャー</td><td>沖縄曲（古堅　宗揮）</td></tr>
+<tr><td>51080</td><td>帽子くまー</td><td>沖縄曲（田場　盛信、我如古　より子）</td></tr>
+<tr><td>51081</td><td>アリラン</td><td>韓国民謡</td></tr>
+<tr><td>51082</td><td>カプトリワカプスニ</td><td>韓国民謡</td></tr>
+<tr><td>51083</td><td>クンバムタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51084</td><td>コツタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51085</td><td>シンコサンタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51086</td><td>セタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51087</td><td>ソンジュプリ</td><td>韓国民謡</td></tr>
+<tr><td>51088</td><td>チャンブタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51089</td><td>チョナンサムゴリ</td><td>韓国民謡</td></tr>
+<tr><td>51090</td><td>チンドアリラン</td><td>韓国民謡</td></tr>
+<tr><td>51091</td><td>テピョンガ</td><td>韓国民謡</td></tr>
+<tr><td>51092</td><td>トラジ</td><td>韓国民謡</td></tr>
+<tr><td>51093</td><td>ニルリリヤ</td><td>韓国民謡</td></tr>
+<tr><td>51094</td><td>ハンオベンニョン</td><td>韓国民謡</td></tr>
+<tr><td>51095</td><td>ハンガンスタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51096</td><td>プンニョンカ</td><td>韓国民謡</td></tr>
+<tr><td>51097</td><td>ペンノレ</td><td>韓国民謡</td></tr>
+<tr><td>51098</td><td>ミリャンアリラン</td><td>韓国民謡</td></tr>
+<tr><td>51099</td><td>モンクムポタリョン</td><td>韓国民謡</td></tr>
+<tr><td>51100</td><td>ヤンサンド</td><td>韓国民謡</td></tr>
+<tr><td>51103</td><td>愛のさざなみ</td><td>島倉　千代子</td></tr>
+<tr><td>51112</td><td>あの時君は若かった</td><td>ザ・スパイダース</td></tr>
+<tr><td>51114</td><td>或る日突然</td><td>トワ・エ・モア</td></tr>
+<tr><td>51120</td><td>イミテイション・ゴールド</td><td>山口　百恵</td></tr>
+<tr><td>51129</td><td>おさかな天国</td><td>柴矢　裕美</td></tr>
+<tr><td>51130</td><td>おはん</td><td>五木　ひろし</td></tr>
+<tr><td>51133</td><td>帰って来たヨッパライ</td><td>ザ・フォーク・クルセダーズ</td></tr>
+<tr><td>51136</td><td>勝手にシンドバッド</td><td>サザンオールスターズ</td></tr>
+<tr><td>51142</td><td>キラキラ</td><td>小田　和正</td></tr>
+<tr><td>51153</td><td>私鉄沿線</td><td>野口　五郎</td></tr>
+<tr><td>51160</td><td>空に星があるように</td><td>荒木　一郎</td></tr>
+<tr><td>51189</td><td>霧笛が俺を呼んでいる</td><td>赤木　圭一郎</td></tr>
+<tr><td>51199</td><td>我が良き友よ</td><td>かまやつ　ひろし</td></tr>
+<tr><td>51213</td><td>青葉の笛</td><td>唱歌</td></tr>
+<tr><td>51214</td><td>青山土手から</td><td>わらべうた</td></tr>
+<tr><td>51215</td><td>赤い鳥小鳥</td><td>童謡</td></tr>
+<tr><td>51216</td><td>赤い山青い山白い山</td><td>わらべうた</td></tr>
+<tr><td>51217</td><td>あがり目さがり目</td><td>わらべうた</td></tr>
+<tr><td>51218</td><td>あした</td><td>童謡</td></tr>
+<tr><td>51219</td><td>あぶくたった</td><td>わらべうた</td></tr>
+<tr><td>51220</td><td>雨</td><td>童謡</td></tr>
+<tr><td>51221</td><td>磯原節</td><td>民謡</td></tr>
+<tr><td>51222</td><td>いちかけにかけ</td><td>わらべうた</td></tr>
+<tr><td>51223</td><td>いちじくにんじん</td><td>わらべうた</td></tr>
+<tr><td>51224</td><td>一番はじめは</td><td>わらべうた</td></tr>
+<tr><td>51225</td><td>一番星みつけた</td><td>わらべうた</td></tr>
+<tr><td>51226</td><td>いちもんめのいちすけさん</td><td>わらべうた</td></tr>
+<tr><td>51227</td><td>一銭かいましょか</td><td>わらべうた</td></tr>
+<tr><td>51228</td><td>いっちゃんが～ろくちゃんが</td><td>わらべうた</td></tr>
+<tr><td>51229</td><td>1本ばしコチョコチョ</td><td>わらべうた</td></tr>
+<tr><td>51230</td><td>いなかの四季</td><td>唱歌</td></tr>
+<tr><td>51231</td><td>犬山音頭</td><td>民謡</td></tr>
+<tr><td>51232</td><td>いもむしごろごろ</td><td>わらべうた</td></tr>
+<tr><td>51233</td><td>うぐいすの夢</td><td>童謡</td></tr>
+<tr><td>51234</td><td>美しき</td><td>唱歌</td></tr>
+<tr><td>51235</td><td>江戸の子守唄</td><td>わらべうた</td></tr>
+<tr><td>51236</td><td>えんどうの花</td><td>唱歌</td></tr>
+<tr><td>51237</td><td>おうち忘れて</td><td>童謡</td></tr>
+<tr><td>51238</td><td>おおなみこなみ</td><td>わらべうた</td></tr>
+<tr><td>51239</td><td>おかよ</td><td>民謡</td></tr>
+<tr><td>51240</td><td>奥多摩よささ節</td><td>民謡</td></tr>
+<tr><td>51241</td><td>おじゃみおふた</td><td>わらべうた</td></tr>
+<tr><td>51242</td><td>おせんべいやけたかな</td><td>わらべうた</td></tr>
+<tr><td>51243</td><td>落葉のおどり</td><td>唱歌</td></tr>
+<tr><td>51244</td><td>おちゃらかホイ</td><td>わらべうた</td></tr>
+<tr><td>51245</td><td>お月さまいくつ</td><td>わらべうた</td></tr>
+<tr><td>51246</td><td>お月見</td><td>唱歌</td></tr>
+<tr><td>51247</td><td>鬼は外福は内</td><td>わらべうた</td></tr>
+<tr><td>51248</td><td>お山のお猿</td><td>童謡</td></tr>
+<tr><td>51249</td><td>かごかき</td><td>唱歌</td></tr>
+<tr><td>51250</td><td>霞か雲か</td><td>唱歌</td></tr>
+<tr><td>51251</td><td>亀戸の天神さま</td><td>わらべうた</td></tr>
+<tr><td>51252</td><td>落葉松 (からまつ)</td><td>唱歌</td></tr>
+<tr><td>51253</td><td>かりがわたる</td><td>文部省唱歌</td></tr>
+<tr><td>51254</td><td>蛙の夜まわり</td><td>童謡</td></tr>
+<tr><td>51255</td><td>河原柳</td><td>唱歌</td></tr>
+<tr><td>51256</td><td>紀元節</td><td>唱歌</td></tr>
+<tr><td>51257</td><td>キューピー・ピーちゃん</td><td>童謡</td></tr>
+<tr><td>51258</td><td>くつが鳴る</td><td>童謡</td></tr>
+<tr><td>51259</td><td>紅萌ゆる丘の花</td><td>唱歌</td></tr>
+<tr><td>51260</td><td>恋の鳥</td><td>唱歌</td></tr>
+<tr><td>51261</td><td>恋はやさし野辺の花よ</td><td>唱歌</td></tr>
+<tr><td>51262</td><td>甲州音頭</td><td>民謡</td></tr>
+<tr><td>51263</td><td>黄金虫 (こがねむし)</td><td>童謡</td></tr>
+<tr><td>51264</td><td>故郷の廃家</td><td>唱歌</td></tr>
+<tr><td>51265</td><td>故郷を離るる歌</td><td>唱歌</td></tr>
+<tr><td>51266</td><td>小倉節</td><td>民謡</td></tr>
+<tr><td>51267</td><td>児島高徳</td><td>唱歌</td></tr>
+<tr><td>51268</td><td>ことしのぼたん</td><td>わらべうた</td></tr>
+<tr><td>51269</td><td>木の葉のお舟</td><td>童謡</td></tr>
+<tr><td>51270</td><td>小諸なる古城のほとり</td><td>唱歌</td></tr>
+<tr><td>51271</td><td>才女</td><td>唱歌</td></tr>
+<tr><td>51272</td><td>酒場の唄</td><td>唱歌</td></tr>
+<tr><td>51273</td><td>さすらいの唄</td><td>唱歌</td></tr>
+<tr><td>51274</td><td>里ごころ</td><td>童謡</td></tr>
+<tr><td>51275</td><td>信田の藪 (しのだのやぶ)</td><td>唱歌</td></tr>
+<tr><td>51276</td><td>十五夜お月さん</td><td>童謡</td></tr>
+<tr><td>51277</td><td>上州小唄</td><td>民謡</td></tr>
+<tr><td>51278</td><td>須坂小唄</td><td>民謡</td></tr>
+<tr><td>51279</td><td>雀の学校</td><td>童謡</td></tr>
+<tr><td>51280</td><td>青春の歌</td><td>唱歌</td></tr>
+<tr><td>51281</td><td>船頭さん</td><td>童謡</td></tr>
+<tr><td>51282</td><td>天は東北</td><td>唱歌</td></tr>
+<tr><td>51283</td><td>大黒様</td><td>童謡</td></tr>
+<tr><td>51284</td><td>たけのこいっぽん</td><td>わらべうた</td></tr>
+<tr><td>51285</td><td>橘中佐</td><td>軍歌（文部省唱歌）</td></tr>
+<tr><td>51286</td><td>種まき権兵衛</td><td>わらべうた</td></tr>
+<tr><td>51287</td><td>旅は青空</td><td>唱歌</td></tr>
+<tr><td>51288</td><td>旅人の唄</td><td>唱歌</td></tr>
+<tr><td>51289</td><td>だるまさん</td><td>わらべうた</td></tr>
+<tr><td>51290</td><td>千曲川旅情の歌</td><td>唱歌</td></tr>
+<tr><td>51291</td><td>鎮西小唄</td><td>民謡</td></tr>
+<tr><td>51292</td><td>チンドンヤ</td><td>童謡</td></tr>
+<tr><td>51293</td><td>土投げ唄</td><td>唱歌</td></tr>
+<tr><td>51294</td><td>手の鳴る方ヘ</td><td>童謡</td></tr>
+<tr><td>51295</td><td>天長節</td><td>唱歌</td></tr>
+<tr><td>51296</td><td>天満の市は</td><td>わらべうた</td></tr>
+<tr><td>51297</td><td>燈臺 (とうだい)</td><td>文部省唱歌</td></tr>
+<tr><td>51298</td><td>時計台の鐘</td><td>唱歌</td></tr>
+<tr><td>51299</td><td>トマト</td><td>童謡</td></tr>
+<tr><td>51300</td><td>中野小唄</td><td>民謡</td></tr>
+<tr><td>51301</td><td>なべなべそこぬけ</td><td>わらべうた</td></tr>
+<tr><td>51302</td><td>奈良の大仏さん</td><td>わらべうた</td></tr>
+<tr><td>51303</td><td>南京言葉</td><td>童謡</td></tr>
+<tr><td>51304</td><td>なんでしょね</td><td>わらべうた</td></tr>
+<tr><td>51305</td><td>南蛮音頭</td><td>民謡</td></tr>
+<tr><td>51306</td><td>ねんねこしゃっしゃりましゃ</td><td>わらべうた</td></tr>
+<tr><td>51307</td><td>ねんねん猫のしっぽ</td><td>わらべうた</td></tr>
+<tr><td>51308</td><td>八幡太郎</td><td>文部省唱歌</td></tr>
+<tr><td>51309</td><td>春の唄</td><td>童謡</td></tr>
+<tr><td>51310</td><td>ビールだる</td><td>唱歌</td></tr>
+<tr><td>51311</td><td>ひとめふため</td><td>わらべうた</td></tr>
+<tr><td>51312</td><td>日の丸のはた</td><td>唱歌</td></tr>
+<tr><td>51313</td><td>富士山見たら</td><td>唱歌</td></tr>
+<tr><td>51314</td><td>ベアトリ姉ちゃん</td><td>唱歌</td></tr>
+<tr><td>51315</td><td>白頭鳥 (ペタコ)</td><td>童謡</td></tr>
+<tr><td>51316</td><td>紅屋の娘</td><td>唱歌</td></tr>
+<tr><td>51317</td><td>坊さん坊さん</td><td>わらべうた</td></tr>
+<tr><td>51318</td><td>ほうしこほうしこ</td><td>わらべうた</td></tr>
+<tr><td>51319</td><td>星の界(よ)</td><td>唱歌</td></tr>
+<tr><td>51320</td><td>牧場の朝</td><td>文部省唱歌</td></tr>
+<tr><td>51321</td><td>三朝小唄</td><td>民謡</td></tr>
+<tr><td>51322</td><td>みどりのそよ風</td><td>唱歌</td></tr>
+<tr><td>51323</td><td>みなと</td><td>唱歌</td></tr>
+<tr><td>51324</td><td>宮さん宮さん</td><td>軍歌</td></tr>
+<tr><td>51325</td><td>向こう横丁</td><td>わらべうた</td></tr>
+<tr><td>51326</td><td>餅つき</td><td>文部省唱歌</td></tr>
+<tr><td>51327</td><td>やさいのうた</td><td>わらべうた</td></tr>
+<tr><td>51328</td><td>山は呼ぶ野は呼ぶ海は呼ぶ</td><td>唱歌</td></tr>
+<tr><td>51329</td><td>ゆうびんやさん</td><td>わらべうた</td></tr>
+<tr><td>51330</td><td>四丁目の犬</td><td>唱歌</td></tr>
+<tr><td>51331</td><td>りすりすこりす</td><td>童謡</td></tr>
+<tr><td>51332</td><td>旅泊</td><td>唱歌</td></tr>
+<tr><td>51336</td><td>weeeek</td><td>NEWS</td></tr>
+<tr><td>51338</td><td>Ultra Music Power</td><td>Hey!Say!JUMP</td></tr>
+<tr><td>51340</td><td>Keep the faith</td><td>KAT-TUN</td></tr>
+<tr><td>51347</td><td>崖の上のポニョ</td><td>藤岡　藤巻と大橋　のぞみ</td></tr>
+<tr><td>51368</td><td>男船</td><td>神野　美伽</td></tr>
+<tr><td>51372</td><td>男の港</td><td>鳥羽　一郎</td></tr>
+<tr><td>51373</td><td>佐渡の恋唄</td><td>細川　たかし</td></tr>
+<tr><td>51388</td><td>汽笛</td><td>五木　ひろし</td></tr>
+<tr><td>51389</td><td>大阪情話～うちと一緒になれへんか～</td><td>中村　美律子</td></tr>
+<tr><td>51398</td><td>愛のままで…</td><td>秋元　順子</td></tr>
+<tr><td>51400</td><td>海峡桟橋</td><td>井上　由美子</td></tr>
+<tr><td>51404</td><td>ORION</td><td>中島　美嘉</td></tr>
+<tr><td>51410</td><td>木曽川しぐれ</td><td>川中　美幸</td></tr>
+<tr><td>51412</td><td>哀愁の湖</td><td>氷川　きよし</td></tr>
+<tr><td>51416</td><td>Believe</td><td>嵐</td></tr>
+<tr><td>51417</td><td>のろま大将</td><td>大江　裕</td></tr>
+<tr><td>51420</td><td>旅愁</td><td>童謡・唱歌</td></tr>
+<tr><td>51425</td><td>霧</td><td>文部省唱歌</td></tr>
+<tr><td>51426</td><td>今度生まれたら</td><td>唱歌</td></tr>
+<tr><td>51427</td><td>卒業の歌</td><td>文部省唱歌</td></tr>
+<tr><td>51428</td><td>花園の恋</td><td>唱歌</td></tr>
+<tr><td>51429</td><td>風鈴</td><td>文部省唱歌</td></tr>
+<tr><td>51430</td><td>山の唄</td><td>唱歌</td></tr>
+<tr><td>51431</td><td>夕立</td><td>文部省唱歌</td></tr>
+<tr><td>51432</td><td>漁船 (りょうせん)</td><td>文部省唱歌</td></tr>
+<tr><td>51433</td><td>いやさか音頭</td><td>北海道民謡</td></tr>
+<tr><td>51434</td><td>道南盆唄</td><td>北海道民謡</td></tr>
+<tr><td>51435</td><td>嘉瀬の奴踊り</td><td>青森県民謡</td></tr>
+<tr><td>51436</td><td>秋田音頭</td><td>秋田県民謡</td></tr>
+<tr><td>51437</td><td>秋田大黒舞</td><td>秋田県民謡</td></tr>
+<tr><td>51438</td><td>外山節</td><td>岩手県民謡</td></tr>
+<tr><td>51439</td><td>あがらしゃれ</td><td>山形県民謡</td></tr>
+<tr><td>51440</td><td>豊年こいこい節</td><td>宮城県民謡</td></tr>
+<tr><td>51441</td><td>相馬節</td><td>福島県民謡</td></tr>
+<tr><td>51442</td><td>新津松坂</td><td>新潟県民謡</td></tr>
+<tr><td>51443</td><td>両津甚句</td><td>新潟県民謡</td></tr>
+<tr><td>51444</td><td>伊那節</td><td>長野県民謡</td></tr>
+<tr><td>51445</td><td>ホッチョセ節</td><td>岐阜県民謡</td></tr>
+<tr><td>51446</td><td>桑名の殿様</td><td>三重県民謡</td></tr>
+<tr><td>51447</td><td>しげさ節</td><td>島根県民謡</td></tr>
+<tr><td>51448</td><td>串木野さのさ</td><td>鹿児島県民謡</td></tr>
+<tr><td>51553</td><td>蜩（ひぐらし）</td><td>長山　洋子</td></tr>
+<tr><td>51555</td><td>ピクニック</td><td>童謡・唱歌</td></tr>
+<tr><td>51559</td><td>トロイカ</td><td>童謡・唱歌</td></tr>
+<tr><td>51560</td><td>千の夜をこえて</td><td>Aqua Timez</td></tr>
+<tr><td>51561</td><td>どこかではるが</td><td>童謡・唱歌</td></tr>
+<tr><td>51563</td><td>ダーリン</td><td>桑田　佳祐</td></tr>
+<tr><td>51566</td><td>剣山 (つるぎさん)</td><td>北山　たけし</td></tr>
+<tr><td>51567</td><td>Someday</td><td>EXILE</td></tr>
+<tr><td>51568</td><td>荒鷲の歌</td><td>軍歌</td></tr>
+<tr><td>51572</td><td>雨降る波止場</td><td>三門　忠司</td></tr>
+<tr><td>51573</td><td>この夜を止めてよ</td><td>JUJU</td></tr>
+<tr><td>51574</td><td>ミスター</td><td>KARA</td></tr>
+<tr><td>51575</td><td>ずっと好きだった</td><td>斉藤　和義</td></tr>
+<tr><td>51576</td><td>チャンスの順番</td><td>AKB48</td></tr>
+<tr><td>51577</td><td>霧の土讃線</td><td>水田　竜子</td></tr>
+<tr><td>51578</td><td>長崎の雨</td><td>川中　美幸</td></tr>
+<tr><td>51580</td><td>男のなみだ雨</td><td>北山　たけし</td></tr>
+<tr><td>51581</td><td>Distance</td><td>西野　カナ</td></tr>
+<tr><td>51582</td><td>ふたりの船唄</td><td>天童　よしみ</td></tr>
+<tr><td>51586</td><td>女…さすらい</td><td>大月　みやこ</td></tr>
+<tr><td>51587</td><td>おとこの潮路</td><td>北島　三郎</td></tr>
+<tr><td>51588</td><td>今のキミを忘れない</td><td>ナオト・インティライミ</td></tr>
+<tr><td>51589</td><td>ゆめ暖簾(のれん)</td><td>山口　ひろみ</td></tr>
+<tr><td>51602</td><td>時代</td><td>中島　みゆき</td></tr>
+<tr><td>51603</td><td>夢をかなえてドラえもん</td><td>mao</td></tr>
+<tr><td>51604</td><td>東京節 (パイのパイ節)</td><td>榎本　健一</td></tr>
+<tr><td>51606</td><td>Rising Sun～陽はまたのぼる～</td><td>EXILE</td></tr>
+<tr><td>51607</td><td>枯れない花</td><td>秋元　順子</td></tr>
+<tr><td>51608</td><td>女々しくて</td><td>ゴールデンボンバー</td></tr>
+<tr><td>51609</td><td>女に生まれて</td><td>三山　ひろし</td></tr>
+<tr><td>51610</td><td>島育ち</td><td>田端　義夫</td></tr>
+<tr><td>51611</td><td>花ぼうろ～霧氷の宿～</td><td>川中　美幸</td></tr>
+<tr><td>51612</td><td>上海だより</td><td>上原　敏</td></tr>
+<tr><td>51613</td><td>つけまつける</td><td>きゃりーぱみゅぱみゅ</td></tr>
+<tr><td>51614</td><td>Let's go! スマイルプリキュア!</td><td>池田　彩</td></tr>
+<tr><td>51615</td><td>倉敷川</td><td>原田　悠里</td></tr>
+<tr><td>51616</td><td>明日花～あしたばな～</td><td>服部　浩子</td></tr>
+<tr><td>58001</td><td>亜麻色の髪の乙女</td><td>島谷　ひとみ</td></tr>
+<tr><td>58002</td><td>天城越え</td><td>石川　さゆり</td></tr>
+<tr><td>58003</td><td>命くれない</td><td>瀬川　瑛子</td></tr>
+<tr><td>58004</td><td>いのちの限り</td><td>天童　よしみ</td></tr>
+<tr><td>58005</td><td>浮雲ふたり</td><td>神野　美伽</td></tr>
+<tr><td>58006</td><td>浮世坂</td><td>伍代　夏子</td></tr>
+<tr><td>58007</td><td>駅</td><td>大川　栄策</td></tr>
+<tr><td>58008</td><td>大阪しぐれ</td><td>都　はるみ</td></tr>
+<tr><td>58009</td><td>奥飛騨慕情</td><td>竜　鉄也</td></tr>
+<tr><td>58010</td><td>河内おとこ節</td><td>中村　美律子</td></tr>
+<tr><td>58011</td><td>川の流れのように</td><td>美空　ひばり</td></tr>
+<tr><td>58012</td><td>北国の春</td><td>千　昌夫</td></tr>
+<tr><td>58013</td><td>北の旅人</td><td>石原　裕次郎</td></tr>
+<tr><td>58014</td><td>北の漁場</td><td>北島　三郎</td></tr>
+<tr><td>58015</td><td>兄弟船</td><td>鳥羽　一郎</td></tr>
+<tr><td>58016</td><td>きよしのズンドコ節</td><td>氷川　きよし</td></tr>
+<tr><td>58017</td><td>釧路湿原</td><td>水森　かおり</td></tr>
+<tr><td>58018</td><td>くちなしの花</td><td>渡　哲也</td></tr>
+<tr><td>58019</td><td>五能線</td><td>水森　かおり</td></tr>
+<tr><td>58020</td><td>桜坂</td><td>福山　雅治</td></tr>
+<tr><td>58021</td><td>酒よ</td><td>吉　幾三</td></tr>
+<tr><td>58022</td><td>さざんかの宿</td><td>大川　栄策</td></tr>
+<tr><td>58023</td><td>島人ぬ宝</td><td>BEGIN</td></tr>
+<tr><td>58024</td><td>人生いろいろ</td><td>島倉　千代子</td></tr>
+<tr><td>58025</td><td>地上の星</td><td>中島　みゆき</td></tr>
+<tr><td>58026</td><td>津軽海峡・冬景色</td><td>石川　さゆり</td></tr>
+<tr><td>58027</td><td>津軽の花</td><td>原田　悠里</td></tr>
+<tr><td>58028</td><td>つぐない</td><td>テレサ・テン</td></tr>
+<tr><td>58029</td><td>時の流れに身をまかせ</td><td>テレサ・テン</td></tr>
+<tr><td>58030</td><td>長良川艶歌</td><td>五木　ひろし</td></tr>
+<tr><td>58031</td><td>なごり雪</td><td>イルカ</td></tr>
+<tr><td>58032</td><td>涙そうそう</td><td>夏川　りみ</td></tr>
+<tr><td>58033</td><td>二輪草</td><td>川中　美幸</td></tr>
+<tr><td>58034</td><td>ノラ</td><td>門倉　有希</td></tr>
+<tr><td>58035</td><td>流恋草（はぐれそう）</td><td>香西　かおり</td></tr>
+<tr><td>58036</td><td>花も嵐も</td><td>山本　譲二</td></tr>
+<tr><td>58037</td><td>陽は昇る</td><td>坂本　冬美</td></tr>
+<tr><td>58038</td><td>風雪ながれ旅</td><td>北島　三郎</td></tr>
+<tr><td>58039</td><td>ふたり酒</td><td>川中　美幸</td></tr>
+<tr><td>58040</td><td>舟唄</td><td>八代　亜紀</td></tr>
+<tr><td>58041</td><td>孫</td><td>大泉　逸郎</td></tr>
+<tr><td>58042</td><td>みだれ髪</td><td>美空　ひばり</td></tr>
+<tr><td>58043</td><td>むらさき雨情</td><td>藤　あや子</td></tr>
+<tr><td>58044</td><td>雪椿</td><td>小林　幸子</td></tr>
+<tr><td>58045</td><td>夜霧よ今夜も有難う</td><td>石原　裕次郎</td></tr>
+<tr><td>58046</td><td>あなたひとすじ</td><td>川中　美幸</td></tr>
+<tr><td>58047</td><td>海雪</td><td>ジェロ</td></tr>
+<tr><td>58048</td><td>ひとり薩摩路</td><td>水森　かおり</td></tr>
+<tr><td>58049</td><td>夜桜</td><td>山川　豊</td></tr>
+<tr><td>58050</td><td>吾亦紅</td><td>すぎもとまさと</td></tr>
+      </tbody>
+    </table>
+    <!-- 検索結果が0件の時のメッセージ受け皿 -->
+    <div id="noResultMsg" class="no-result" style="display: none;">該当するデータが見つかりません。</div>
+  </div>
+
+  <!-- ③ 制御用JavaScript -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const table = document.getElementById('targetTable');
+    const tbody = table.querySelector('tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr')); // 全生データ
+    const noResultMsg = document.getElementById('noResultMsg');
+
+    // --------------------------------------------------
+    // 【高速化のキモ】allRows の中身を「検索用テキスト」付きのオブジェクト配列にする
+    // --------------------------------------------------
+    // ※ 画面ロード時、またはデータ読み込み完了時に1度だけ実行してください
+    const cachedRows = allRows.map(row => {
+      const cells = Array.from(row.querySelectorAll('td'));
+      const rawText = (cells[1]?.textContent || '') + ' ' + (cells[2]?.textContent || '');
+
+      return {
+        element: row,                      // 元の tr 要素
+        searchText: normalizeText(rawText) // あらかじめ正規化した検索用テキスト
+      };
+    });
+
+    // UI要素の取得
+    const searchInput = document.getElementById('searchKeyword');
+    const pageSelect = document.getElementById('pageSelect');
+    const radios = document.querySelectorAll('input[name="perPage"]');
+    const btnFirst = document.getElementById('btnFirst');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnLast = document.getElementById('btnLast');
+
+    let currentPage = 1;
+    let rowsPerPage = 25;
+    let filteredRows = [...allRows]; // 検索で絞り込まれた行のリスト（初期は全行）
+
+    // --------------------------------------------------
+    // 【軽量化】デバウンス（タイピング中の無駄な実行を抑える）用のタイマー
+    // --------------------------------------------------
+    let searchTimeout;
+
+    // 検索キーワード入力時のイベント
+    searchInput.addEventListener('input', (e) => {
+      // タイピングするたびにタイマーをリセット
+      clearTimeout(searchTimeout);
+
+      // 200ミリ秒（0.2秒）の間、次の入力がなければ検索を実行
+      searchTimeout = setTimeout(() => {
+        const keyword = normalizeText(e.target.value.trim());
+
+        if (keyword === '') {
+          filteredRows = [...allRows];
+        } else {
+          // 事前に計算済みの searchText を比較するだけなので爆速
+          const filteredObjects = cachedRows.filter(item => {
+            return item.searchText.includes(keyword);
+          });
+
+          // 抽出されたオブジェクトから、元の tr 要素の配列を復元
+          filteredRows = filteredObjects.map(item => item.element);
+        }
+
+        currentPage = 1;
+        updateTable();
+      }, 200); // 待ち時間は 200ms（お好みで 150～300ms に調整してください）
+    });
+
+    function updateTable() {
+      const totalRows = filteredRows.length;
+      const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+
+      // 検索結果がゼロの場合の処理
+      if (totalRows === 0) {
+        allRows.forEach(row => row.style.display = 'none');
+        noResultMsg.style.display = 'block';
+        pageSelect.innerHTML = '<option value="1">0 / 0 ページ</option>';
+        pageSelect.disabled = true;
+        btnFirst.disabled = btnPrev.disabled = btnNext.disabled = btnLast.disabled = true;
+        return;
+      } else {
+        noResultMsg.style.display = 'none';
+        pageSelect.disabled = false;
+      }
+
+      // ページ数の範囲ガード
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      // 1. すべての行を一旦非表示にする
+      allRows.forEach(row => row.style.display = 'none');
+
+      // 2. 絞り込まれたデータの中で、現在のページのデータだけを表示して着色
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      
+      let visibleCount = 0;
+      filteredRows.forEach((row, index) => {
+        if (index >= startIndex && index < endIndex) {
+          row.style.display = '';
+          // ゼブラパターンの着色
+          row.style.backgroundColor = (visibleCount % 2 === 0) ? '#ffffff' : '#f7f9fa';
+          visibleCount++;
+        }
+      });
+
+      // 3. ドロップダウン（選択肢）を再構築
+      pageSelect.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${i} / ${totalPages} ページ`;
+        if (i === currentPage) {
+          option.selected = true;
+        }
+        pageSelect.appendChild(option);
+      }
+
+      // 4. 矢印ボタンの有効/無効コントロール
+      btnFirst.disabled = (currentPage === 1);
+      btnPrev.disabled = (currentPage === 1);
+      btnNext.disabled = (currentPage === totalPages);
+      btnLast.disabled = (currentPage === totalPages);
+    }
+
+    // --- 全角半角・かなカナの揺れを吸収する正規化関数 ---
+    function toHiragana(str) {
+      return str.replace(/[\u30a1-\u30f6]/g, match => {
+        return String.fromCharCode(match.charCodeAt(0) - 0x60);
+      });
+    }
+    function normalizeText(str) {
+      if (!str) return '';
+      // NFKC正規化、小文字化、ひらがな化を行う
+      return toHiragana(str.normalize('NFKC').toLowerCase());
+    }
+
+    // 検索キーワード入力時のイベント（一文字入力するごとにリアルタイムで絞り込み）
+    searchInput.addEventListener('input', (e) => {
+      // 入力されたキーワードを正規化（trimも含む）
+      const keyword = normalizeText(e.target.value.trim());
+
+      if (keyword === '') {
+        // キーワードが空なら全行を対象にする
+        filteredRows = [...allRows];
+      } else {
+        // キーワードが含まれる行だけを抽出（曲名、歌手名の両方を検索対象に）
+        filteredRows = allRows.filter(row => {
+          const cells = Array.from(row.querySelectorAll('td'));
+          // 2列目と3列目のテキストを結合
+          const rawText = (cells[1]?.textContent || '') + ' ' + (cells[2]?.textContent || '');
+          // 抽出対象のテキストも同様に正規化して比較する
+          const textToSearch = normalizeText(rawText);
+          return textToSearch.includes(keyword);
+        });
+      }
+
+      currentPage = 1; // 検索時は必ず1ページ目に戻す
+      updateTable();
+    });
+
+    // イベントリスナー：ラジオボタン（表示件数）
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        rowsPerPage = parseInt(e.target.value, 10);
+        currentPage = 1;
+        updateTable();
+      });
+    });
+
+    // イベントリスナー：ドロップダウン（ページ直接指定）
+    pageSelect.addEventListener('change', (e) => {
+      currentPage = parseInt(e.target.value, 10);
+      updateTable();
+    });
+
+    // イベントリスナー：各矢印ボタンの動作
+    btnFirst.addEventListener('click', () => {
+      currentPage = 1;
+      updateTable();
+    });
+
+    btnPrev.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        updateTable();
+      }
+    });
+
+    btnNext.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        updateTable();
+      }
+    });
+
+    btnLast.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+      currentPage = totalPages;
+      updateTable();
+    });
+
+    // 初回実行
+    updateTable();
+  });
+  </script>
